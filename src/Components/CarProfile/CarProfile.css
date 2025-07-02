@@ -1,0 +1,62 @@
+.carprofile-container {
+    height: 100%;
+    background-color: var(--bg-secondary);
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    font-family: system-ui, sans-serif;
+}
+
+.car-title {
+    height: 10%;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    font-size: 1.4rem;
+}
+
+.car-description {
+    height: 5%;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+
+.car-img-container {
+    height: 78%;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.car-img {
+    height: 345px;
+}
+
+.car-status {
+    height: 7%;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.status-content {
+    color: var(--valid-color);
+    margin-left: 20px;
+    margin-right: 4px;
+}
+
+.status-option {
+    cursor: pointer;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.status-option:hover {
+    color: var(--text-primary);
+}

@@ -1,0 +1,26 @@
+.nav-container {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-button {
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 6px;
+    color: var(--icon-color);
+    cursor: pointer;
+    height: 42px;
+    width: 42px;
+}
+
+.nav-button:hover {
+    color: var(--icon-color-hover);
+    background-color: var(--bg-secondary-hover);
+    border: 1px solid var(--border-color-hover);
+    font-size: 24px;
+}
