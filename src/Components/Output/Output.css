@@ -1,0 +1,45 @@
+.output-container {
+    background-color: var(--bg-secondary);
+    height: 100%;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    font-family: system-ui, sans-serif;
+}
+
+.info-title {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin: 0 auto;
+}
+
+.info-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.info-item {
+  background-color: transparent;
+  border-left: 2px solid #3498db;
+  transition: transform 0.2s ease;
+  padding-left: 15px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.even-item {
+  background-color: var(--border-color);
+}
+
+.info-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.info-value {
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}

@@ -33,7 +33,7 @@
 }
 
 .car-img {
-    height: 345px;
+    height: 300px;
 }
 
 .car-status {
@@ -47,7 +47,7 @@
 
 .status-content {
     color: var(--valid-color);
-    margin-left: 20px;
+    margin-left: 15px;
     margin-right: 4px;
 }
 

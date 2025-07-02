@@ -36,13 +36,15 @@
 
 .right-bottom-section {
     height: 33%;
+    padding: 8px;
 }
 
 .right-top-left-section {
     width: 40%;
+    padding: 8px;
 }
 
 .right-top-right-section {
     width: 60%;
-    padding: 10px;
+    padding: 8px;
 }
