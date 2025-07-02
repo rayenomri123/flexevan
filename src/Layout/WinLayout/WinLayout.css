@@ -1,0 +1,47 @@
+.layout-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.navigation-section {
+    height: 20%;
+}
+
+.mid-section {
+    display: flex;
+    flex-direction: row;
+    height: 60%;
+}
+
+.control-section {
+    height: 20%;
+}
+
+.left-section {
+    width: 20%;
+}
+
+.right-section {
+    display: flex;
+    flex-direction: column;
+    width: 80%;
+}
+
+.right-top-section {
+    display: flex;
+    flex-direction: row;
+    height: 67%;
+}
+
+.right-bottom-section {
+    height: 33%;
+}
+
+.right-top-left-section {
+    width: 40%;
+}
+
+.right-top-right-section {
+    width: 60%;
+}

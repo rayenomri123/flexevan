@@ -1,10 +1,10 @@
-import React from 'react'
 import './App.css'
+import WinLayout from './Layout/WinLayout/WinLayout'
 
 const App = () => {
   return (
     <div>
-      
+      <WinLayout />
     </div>
   )
 }
