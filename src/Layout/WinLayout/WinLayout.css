@@ -5,21 +5,25 @@
 }
 
 .navigation-section {
-    height: 20%;
+    height: 15%;
 }
 
 .mid-section {
     display: flex;
     flex-direction: row;
-    height: 60%;
+    height: 70%;
 }
 
 .control-section {
-    height: 20%;
+    height: 15%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .left-section {
     width: 20%;
+    padding: 8px;
 }
 
 .right-section {

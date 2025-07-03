@@ -1,5 +1,5 @@
 import './Navigations.css'
-import { VscTools , VscLayoutSidebarLeft, VscBell, VscCircuitBoard } from 'react-icons/vsc'
+import { VscTools , VscLayoutSidebarLeft, VscBell, VscSettingsGear } from 'react-icons/vsc'
 
 const Navigations = () => {
   return (
@@ -14,7 +14,7 @@ const Navigations = () => {
         <VscBell />
       </button>
       <button className="nav-button">
-        <VscCircuitBoard />
+        <VscSettingsGear />
       </button>
     </div>
   )

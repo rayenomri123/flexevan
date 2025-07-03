@@ -12,7 +12,7 @@ const Output = () => {
 
   function InfoItem({ label, value, index }) {
     return (
-      <div className={`info-item ${index % 2 === 1 ? 'even-item' : ''}`}>
+      <div className={`info-item ${index % 2 === 0 ? 'even-item' : ''}`}>
         <div className="info-label">{label}:</div>
         <div className="info-value">{value}</div>
       </div>

@@ -3,6 +3,8 @@ import NavigationSection from '../NavigationSection/NavigationSection'
 import CarProfile from '../../Components/CarProfile/CarProfile'
 import Output from '../../Components/Output/Output'
 import Console from '../../Components/Console/Console'
+import Controls from '../../Components/Controls/Controls'
+import SearchSection from '../../Components/SearchSection/SearchSection'
 
 const WinLayout = () => {
   return (
@@ -11,7 +13,9 @@ const WinLayout = () => {
         <NavigationSection />
       </div>
       <div className="mid-section">
-        <div className="left-section"></div>
+        <div className="left-section">
+          <SearchSection />
+        </div>
         <div className="right-section">
             <div className="right-top-section">
                 <div className="right-top-left-section"><Output /></div> 
@@ -25,7 +29,7 @@ const WinLayout = () => {
         </div>
       </div>
       <div className="control-section">
-
+        <Controls />
       </div>
     </div>
   )

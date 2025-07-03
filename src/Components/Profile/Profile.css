@@ -1,0 +1,44 @@
+.user-profile-container {
+   height: 40px;
+   width: 160px;
+   background-color: var(--bg-secondary);
+   border: 1px solid var(--border-color);
+   border-radius: 8px;
+   margin-left: auto;
+   display: flex;
+   flex-direction: row;
+   padding: 4px 10px;
+   align-items: center;
+   gap: 10px;
+}
+
+.user-profile-container:hover {
+    background-color: var(--bg-secondary-hover);
+}
+
+.user-icon {
+    height: 30px;
+    width: 30px;
+    background-color: var(--bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.user-name {
+    font-size: 0.75rem;
+    font-family: system-ui, sans-serif;
+    color: var(--text-secondary);
+}
+
+.dropdown-btn {
+    color: var(--icon-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    font-size: 16px;
+}
+
+.dropdown-btn:hover {
+    color: var(--icon-color-hover);
+}

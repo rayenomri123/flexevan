@@ -17,7 +17,7 @@
 
 .info-grid {
   display: grid;
-  gap: 10px;
+  gap: 15px;
   margin-top: auto;
 }
 
@@ -25,9 +25,7 @@
   background-color: transparent;
   border-left: 2px solid #3498db;
   transition: transform 0.2s ease;
-  padding-left: 15px;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding-left: 18px;
 }
 
 .even-item {
@@ -36,7 +34,8 @@
 
 .info-label {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  padding-bottom: 2px;
 }
 
 .info-value {

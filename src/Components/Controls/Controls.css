@@ -1,0 +1,25 @@
+.controls-container {
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: row;
+    gap: 22px;
+    padding: 12px 26px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    border: 1px solid var(--border-color-hover);
+}
+
+.control-btn {
+    color: var(--icon-color);
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.control-btn:hover {
+    color: var(--icon-color-hover);
+    transform: scale(1.2);
+}

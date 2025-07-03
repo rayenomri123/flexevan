@@ -2,24 +2,60 @@
     --bg-primary: rgb(12, 15, 23);
     --bg-secondary: #141823;
     --bg-secondary-hover: rgb(30, 34, 45);
+    --bg-tertiary: rgb(22, 26, 39);
     --icon-color: rgb(200, 200, 200);
     --icon-color-hover: white;
     --text-primary: white;
-    --text-secondary: rgb(200, 200, 200);;
+    --text-secondary: rgb(200, 200, 200);
     --border-color: rgb(30, 34, 45);
     --border-color-hover: rgb(40, 44, 55);
     --valid-color: rgb(76, 237, 76);
 }
 
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin: 0;
     padding: 0 100px;
-    background-color: var(--bg-primary);
+
     *:focus {
         outline: none;
     }
+
+    background:
+        radial-gradient(circle at 30% 30%, var(--bg-primary) 0%, transparent 70%),
+        linear-gradient(135deg, var(--bg-primary), var(--bg-secondary), var(--bg-tertiary), black);
+    background-size: 400% 400%, 400% 400%;
+    animation:
+        gradientDrift 60s ease-in-out infinite,
+        scalePulse 90s ease-in-out infinite;
 }
 
-* {
-    box-sizing: border-box;
+@keyframes gradientDrift {
+    0% {
+        background-position: 0% 0%, 0% 0%;
+    }
+    25% {
+        background-position: 30% 50%, 70% 20%;
+    }
+    50% {
+        background-position: 60% 30%, 40% 70%;
+    }
+    75% {
+        background-position: 30% 60%, 80% 40%;
+    }
+    100% {
+        background-position: 0% 0%, 0% 0%;
+    }
+}
+
+@keyframes scalePulse {
+    0%, 100% {
+        background-size: 400% 400%, 400% 400%;
+    }
+    50% {
+        background-size: 450% 450%, 500% 500%;
+    }
 }
