@@ -25,7 +25,7 @@ body {
     }
 
     background:
-        radial-gradient(circle at 30% 30%, var(--bg-primary) 0%, transparent 70%),
+        radial-gradient(circle at 50% 50%, var(--bg-primary) 0%, transparent 70%),
         linear-gradient(135deg, var(--bg-primary), var(--bg-secondary), var(--bg-tertiary), black);
     background-size: 400% 400%, 400% 400%;
     animation:

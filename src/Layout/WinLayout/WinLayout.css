@@ -2,6 +2,7 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
+    display: flex;
 }
 
 .navigation-section {
@@ -12,6 +13,8 @@
     display: flex;
     flex-direction: row;
     height: 70%;
+    display: flex;
+    justify-content: center;
 }
 
 .control-section {
@@ -51,4 +54,45 @@
 .right-top-right-section {
     width: 60%;
     padding: 8px;
+}
+
+.settings-section {
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    background-color: transparent;
+    z-index: 1000;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.settings-section-close-btn {
+    font-size: 16px;
+    color: var(--icon-color);
+    background-color: var(--bg-primary);
+    padding: 4px;
+    border-radius: 50%;
+    z-index: 2000;
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    bottom: 81%;
+    left: 88.3%;
+}
+
+.settings-section-close-btn:hover {
+    color: var(--icon-color-hover);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color-hover);
+}
+
+.settings-section-close-btn:active {
+    background-color: white;
+    color: black;
 }

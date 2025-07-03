@@ -24,3 +24,10 @@
     border: 1px solid var(--border-color-hover);
     font-size: 24px;
 }
+
+.nav-button.active {
+    color: var(--icon-color-hover);
+    background-color: var(--bg-secondary-hover);
+    border: 1px solid var(--border-color-hover);
+    font-size: 24px;
+}
