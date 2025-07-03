@@ -10,6 +10,7 @@
     --border-color: rgb(30, 34, 45);
     --border-color-hover: rgb(40, 44, 55);
     --valid-color: rgb(76, 237, 76);
+    --valid-color-hover: rgba(76, 237, 76, 0.15);
 }
 
 * {
