@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import './WinLayout.css';
+import doc from '../../assets/doc.png'
 import { VscClose } from 'react-icons/vsc';
 import NavigationSection from '../NavigationSection/NavigationSection';
 import CarProfile from '../../Components/CarProfile/CarProfile';
@@ -11,7 +12,8 @@ import Settings from '../../Components/Settings/Settings';
 
 const WinLayout = () => {
   const [isSearchSectionOpen, setIsSearchSectionOpen] = useState(true)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHomeOpen, setIsHomeOpen] = useState(false);
   const settingsRef = useRef(null);
 
   const handleOutsideClick = (event) => {
@@ -37,9 +39,13 @@ const WinLayout = () => {
           isSettingsOpen={isSettingsOpen} 
           setIsSettingsOpen={setIsSettingsOpen} 
           isSearchSectionOpen={isSearchSectionOpen} 
-          setIsSearchSectionOpen={setIsSearchSectionOpen} 
+          setIsSearchSectionOpen={setIsSearchSectionOpen}
+          isHomeOpen={isHomeOpen} 
+          setIsHomeOpen={setIsHomeOpen} 
         />
       </div>
+      {isHomeOpen? (
+      <>
       <div className="mid-section">
         {isSearchSectionOpen && (
           <div className="left-section">
@@ -61,6 +67,12 @@ const WinLayout = () => {
       <div className="control-section">
         <Controls />
       </div>
+      </>
+      ) : (
+        <div className="documentation-section">
+          <img src={doc} alt="Documentation" className='documentation-img' />
+        </div>
+      )}
     </div>
   );
 };

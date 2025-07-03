@@ -1,11 +1,11 @@
 import './Navigations.css'
-import { VscTools, VscLayoutSidebarLeft, VscLayoutSidebarLeftOff, VscBell, VscSettingsGear } from 'react-icons/vsc'
+import { VscTools, VscLayoutSidebarLeft, VscLayoutSidebarLeftOff, VscBell, VscSettingsGear, VscBook } from 'react-icons/vsc'
 
-const Navigations = ({ isSettingsOpen, setIsSettingsOpen, isSearchSectionOpen, setIsSearchSectionOpen }) => {
+const Navigations = ({ isSettingsOpen, setIsSettingsOpen, isSearchSectionOpen, setIsSearchSectionOpen, isHomeOpen, setIsHomeOpen }) => {
   return (
     <div className='nav-container'>
-      <button className="nav-button">
-        <VscTools />
+      <button className="nav-button active" onClick={() => setIsHomeOpen(!isHomeOpen)}>
+        {isHomeOpen ? <VscBook /> : <VscTools/>}
       </button>
 
       <button 
