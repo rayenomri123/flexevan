@@ -1,13 +1,18 @@
 import './Controls.css'
 import { VscRunAll, VscDebugStop, VscBookmark, VscSaveAll } from 'react-icons/vsc'
+import { FaSpinner } from 'react-icons/fa'
 import { useState } from 'react'
 
-const Controls = () => {
-  const [isRunning, setIsRunning] = useState(false);
+const Controls = ({ isRunning, setIsRunning }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDhcpAction = async () => {
+    // start spinner
     setLoading(true);
+
+    // wait 2 seconds for animation
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     try {
       if (isRunning) {
         await window.electronAPI.stopDhcp();
@@ -16,11 +21,13 @@ const Controls = () => {
         await window.electronAPI.startDhcp();
         console.log('DHCP started');
       }
+      // only flip state after the action
       setIsRunning(!isRunning);
     } catch (error) {
       console.error('DHCP error:', error);
       alert(`Error: ${error.message}`);
     } finally {
+      // stop spinner
       setLoading(false);
     }
   };
@@ -32,7 +39,10 @@ const Controls = () => {
         onClick={handleDhcpAction}
         disabled={loading}
       >
-        {isRunning ? <VscDebugStop /> : <VscRunAll />}
+        {loading
+          ? <FaSpinner className="spin" />
+          : (isRunning ? <VscDebugStop /> : <VscRunAll />)
+        }
       </button>
       <div className="control-btn">
         <VscSaveAll />

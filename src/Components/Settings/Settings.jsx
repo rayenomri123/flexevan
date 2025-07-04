@@ -1,11 +1,15 @@
 import './Settings.css';
 import { VscChevronRight, VscChevronDown, VscChevronUp, VscSaveAll } from 'react-icons/vsc';
+import { CiServer,  } from 'react-icons/ci';
+import { PiDevices } from 'react-icons/pi';
 import { useState, useEffect, useRef } from 'react';
 
 const Settings = () => {
   const [interfaces, setInterfaces] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isSCOpen, setIsSCOpen] = useState(true);
+  const [isCCOpen, setIsCCOpen] = useState(false);
   const [settings, setSettings] = useState({
     interface_name: '',
     host_ip: '192.168.1.1',
@@ -83,7 +87,26 @@ const Settings = () => {
 
   return (
     <div className='settings-container'>
-      <div className="settings-container-title">DHCP Configuration</div>
+    <div className="settings-container-left">
+      <div className={`settings-container-left-btn-container ${isSCOpen ? 'active' : ''}`} onClick={() => { setIsSCOpen(true); setIsCCOpen(false) }}>
+        <div className="settings-container-left-icon" >
+          <CiServer />
+        </div>
+        <button className="settings-container-left-btn">Server</button>
+      </div>
+      <div className={`settings-container-left-btn-container ${isCCOpen ? 'active' : ''}`} onClick={() => { setIsCCOpen(true); setIsSCOpen(false) }}>
+        <div className="settings-container-left-icon">
+          <PiDevices />
+        </div>
+        <button className="settings-container-left-btn">Client</button>
+      </div>
+      
+    </div>
+    {isSCOpen ? (
+    <div className="settings-container-right-server">
+      <div className="settings-control-section">
+        <div className="settings-container-title">Server Configuration</div>
+      </div>
       <form className="dhcp-form" onSubmit={handleSave}>
 
         <div className="form-group" ref={dropdownRef}>
@@ -176,6 +199,12 @@ const Settings = () => {
           )}
         </div>
       </form>
+      </div>
+      ) : (
+        <div className="settings-container-right-client">
+          <div className="settings-container-title">Client Configuration</div>
+        </div>
+      )}
     </div>
   );
 };

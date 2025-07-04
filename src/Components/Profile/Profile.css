@@ -3,13 +3,14 @@
    width: 160px;
    background-color: var(--bg-secondary);
    border: 1px solid var(--border-color);
-   border-radius: 8px;
+   border-radius: 10px;
    margin-left: auto;
    display: flex;
    flex-direction: row;
    padding: 4px 10px;
    align-items: center;
    gap: 10px;
+   cursor: pointer;
 }
 
 .user-profile-container:hover {

@@ -1,7 +1,6 @@
 .controls-container {
     background-color: var(--bg-secondary);
     display: flex;
-    flex-direction: row;
     gap: 8px;
     padding: 8px 22px;
     min-height: 50px;
@@ -21,7 +20,7 @@
     font-size: 20px;
     color: var(--icon-color);
     background-color: transparent;
-    border:none;
+    border: none;
     border-radius: 8px;
     cursor: pointer;
 }
@@ -32,7 +31,7 @@
 }
 
 .control-btn.active {
-    background-color: var(--valid-color-hover);
+    background-color: var(--invalid-color-hover);
     color: var(--icon-color-hover);
     border-color: var(--border-color-hover);
     transform: scale(1.15);
@@ -43,4 +42,13 @@
     cursor: not-allowed;
     pointer-events: none;
     transform: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }

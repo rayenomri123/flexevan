@@ -3,6 +3,7 @@
     --bg-secondary: #141823;
     --bg-secondary-hover: rgb(30, 34, 45);
     --bg-tertiary: rgb(22, 26, 39);
+    --bg-quaternary: rgb(27, 31, 43);
     --icon-color: rgb(200, 200, 200);
     --icon-color-hover: white;
     --text-primary: white;
@@ -11,6 +12,8 @@
     --border-color-hover: rgb(40, 44, 55);
     --valid-color: rgb(76, 237, 76);
     --valid-color-hover: rgba(76, 237, 76, 0.15);
+    --invalid-color: rgb(255, 0, 0);
+    --invalid-color-hover: rgb(75, 0, 0);
 }
 
 * {

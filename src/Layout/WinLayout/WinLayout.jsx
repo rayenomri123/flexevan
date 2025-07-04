@@ -9,11 +9,13 @@ import Console from '../../Components/Console/Console';
 import Controls from '../../Components/Controls/Controls';
 import SearchSection from '../../Components/SearchSection/SearchSection';
 import Settings from '../../Components/Settings/Settings';
+import UdsCommunication from '../../Components/UdsCommunication/UdsCommunication';
 
 const WinLayout = () => {
   const [isSearchSectionOpen, setIsSearchSectionOpen] = useState(true)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHomeOpen, setIsHomeOpen] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const settingsRef = useRef(null);
 
   const handleOutsideClick = (event) => {
@@ -41,7 +43,9 @@ const WinLayout = () => {
           isSearchSectionOpen={isSearchSectionOpen} 
           setIsSearchSectionOpen={setIsSearchSectionOpen}
           isHomeOpen={isHomeOpen} 
-          setIsHomeOpen={setIsHomeOpen} 
+          setIsHomeOpen={setIsHomeOpen}
+          isRunning={isRunning} 
+          setIsRunning={setIsRunning}
         />
       </div>
       {isHomeOpen? (
@@ -65,7 +69,7 @@ const WinLayout = () => {
         </div>
       </div>
       <div className="control-section">
-        <Controls />
+        <Controls isRunning={isRunning} setIsRunning={setIsRunning} />
       </div>
       </>
       ) : (
