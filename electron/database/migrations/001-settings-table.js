@@ -9,6 +9,7 @@ module.exports = {
         subnet_mask TEXT NOT NULL,
         pool_start TEXT NOT NULL,
         pool_end TEXT NOT NULL,
+        logic_ad TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )

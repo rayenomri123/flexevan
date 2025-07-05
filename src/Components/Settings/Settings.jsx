@@ -13,9 +13,10 @@ const Settings = () => {
   const [settings, setSettings] = useState({
     interface_name: '',
     host_ip: '192.168.1.1',
-    subnet_mask: '255.255.255.0',
+    subnet_mask: '255.255.0.0',
     pool_start: '192.168.1.100',
-    pool_end: '192.168.1.150'
+    pool_end: '192.168.1.150',
+    logic_ad: '0x00405F10'
   });
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -104,9 +105,7 @@ const Settings = () => {
     </div>
     {isSCOpen ? (
     <div className="settings-container-right-server">
-      <div className="settings-control-section">
         <div className="settings-container-title">Server Configuration</div>
-      </div>
       <form className="dhcp-form" onSubmit={handleSave}>
 
         <div className="form-group" ref={dropdownRef}>
@@ -165,7 +164,6 @@ const Settings = () => {
           />
         </div>
 
-        {/* Pool Range */}
         <div className="form-group">
           <label>Pool Range</label>
           <div className="pool-range-inputs">
@@ -203,7 +201,29 @@ const Settings = () => {
       ) : (
         <div className="settings-container-right-client">
           <div className="settings-container-title">Client Configuration</div>
-        </div>
+          <form className="dhcp-form" onSubmit={handleSave}>
+            <div className="form-group">
+              <label htmlFor="hostIp">Logical Address</label>
+              <input
+                type="text"
+                id="hostIp"
+                name="logic_ad"
+                value={settings.logic_ad}
+                onChange={handleInputChange}
+                placeholder="e.g. 0x00405F10"
+              />
+            </div>
+              <button type="submit" className="save-button">
+                Save <VscSaveAll />
+              </button>
+
+              <div className="message-container">
+                {message && (
+                  <div className={`save-message ${messageType}`}>{message}</div>
+                )}
+              </div>
+          </form>
+        </div>        
       )}
     </div>
   );

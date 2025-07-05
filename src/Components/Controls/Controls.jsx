@@ -11,7 +11,7 @@ const Controls = ({ isRunning, setIsRunning }) => {
     setLoading(true);
 
     // wait 2 seconds for animation
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     try {
       if (isRunning) {

@@ -1,0 +1,25 @@
+.powerbtn-container {
+    background-color: var(--bg-secondary);
+    font-size: 18.5px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    color: var(--icon-color);
+    border-radius: 10px;
+    cursor: pointer;
+    margin-right: auto;
+}
+
+.powerbtn-container:hover {
+    color: var(--icon-color-hover);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color-hover);
+}
+
+.powerbtn-container:active {
+    background-color: white;
+    color: black;
+    border: 1px solid black;
+}

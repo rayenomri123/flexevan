@@ -1,6 +1,6 @@
 import './NavigationSection.css'
 import Navigations from '../../Components/Navigations/Navigations'
-import Logo from '../../Components/Logo/Logo'
+import Power from '../../Components/Power/Power'
 import Profile from '../../Components/Profile/Profile'
 import { VscDebugDisconnect } from 'react-icons/vsc'
 import { PiPlugsConnectedLight } from 'react-icons/pi'
@@ -8,8 +8,8 @@ import { PiPlugsConnectedLight } from 'react-icons/pi'
 const NavigationSection = ({ isSettingsOpen, setIsSettingsOpen, isSearchSectionOpen, setIsSearchSectionOpen, isHomeOpen, setIsHomeOpen, isRunning, setIsRunning }) => {
   return (
     <div className='navigation-section-content'>
-      <div className="logo-container">
-        <Logo />
+      <div className="power-container">
+        <Power />
       </div>
       <div className="navigation-container">
         <Navigations 
