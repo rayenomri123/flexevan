@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import './Output.css';
 
-const Output = () => {
-  const [vehicleInfo, setVehicleInfo] = useState({
-    vehicleIdentificationNumber: '',
-    ecuSerialNumberDataIdentifier: '',
-    systemSupplierIdentifier: '',
-    vehicleManufacturerEcuHardwareNumber: '',
-    manufacturerSparePartNumber: ''
-  });
+const Output = ({ isRecorded, setIsRecorded, vehicleInfo, setVehicleInfo }) => {
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,14 +11,33 @@ const Output = () => {
         setVehicleInfo(data);
       } catch (error) {
         console.error('Error fetching vehicle info:', error);
+        setVehicleInfo({
+          vehicleIdentificationNumber: '',
+          ecuSerialNumberDataIdentifier: '',
+          systemSupplierIdentifier: '',
+          vehicleManufacturerEcuHardwareNumber: '',
+          manufacturerSparePartNumber: ''
+        });
       }
     };
 
     fetchData();  // Initial fetch
-    const intervalId = setInterval(fetchData, 1000);  // Poll every 5 seconds
+    const intervalId = setInterval(fetchData, 500);
 
     return () => clearInterval(intervalId);  // Cleanup
   }, []);
+
+  useEffect(() => {
+    const allValuesPresent = Object.values(vehicleInfo).every(
+      (value) => value !== null && value !== ''
+    );
+
+    if (allValuesPresent) {
+      setIsRecorded(true);
+    }
+
+    else setIsRecorded(false);
+  }, [vehicleInfo, setIsRecorded]);
 
   function InfoItem({ label, value, index }) {
     return (

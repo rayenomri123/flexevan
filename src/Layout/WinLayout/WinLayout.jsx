@@ -9,13 +9,20 @@ import Console from '../../Components/Console/Console';
 import Controls from '../../Components/Controls/Controls';
 import SearchSection from '../../Components/SearchSection/SearchSection';
 import Settings from '../../Components/Settings/Settings';
-import UdsCommunication from '../../Components/UdsCommunication/UdsCommunication';
 
 const WinLayout = () => {
   const [isSearchSectionOpen, setIsSearchSectionOpen] = useState(true)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHomeOpen, setIsHomeOpen] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
+  const [isRecorded, setIsRecorded] = useState(false);
+  const [vehicleInfo, setVehicleInfo] = useState({
+    vehicleIdentificationNumber: '',
+    ecuSerialNumberDataIdentifier: '',
+    systemSupplierIdentifier: '',
+    vehicleManufacturerEcuHardwareNumber: '',
+    manufacturerSparePartNumber: ''
+  });
   const settingsRef = useRef(null);
 
   const handleOutsideClick = (event) => {
@@ -58,9 +65,11 @@ const WinLayout = () => {
         )}
         <div className="right-section">
           <div className="right-top-section">
-            <div className="right-top-left-section"><Output /></div> 
+            <div className="right-top-left-section">
+              <Output isRecorded={isRecorded} setIsRecorded={setIsRecorded} vehicleInfo={vehicleInfo} setVehicleInfo={setVehicleInfo}/>
+            </div> 
             <div className="right-top-right-section">
-              <CarProfile />
+              <CarProfile isRecorded={isRecorded} setIsRecorded={setIsRecorded} vehicleInfo={vehicleInfo} setVehicleInfo={setVehicleInfo}/>
             </div>
           </div>
           <div className="right-bottom-section">
@@ -69,7 +78,7 @@ const WinLayout = () => {
         </div>
       </div>
       <div className="control-section">
-        <Controls isRunning={isRunning} setIsRunning={setIsRunning} />
+        <Controls isRunning={isRunning} setIsRunning={setIsRunning} isRecorded={isRecorded} vehicleInfo={vehicleInfo}/>
       </div>
       </>
       ) : (

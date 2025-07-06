@@ -1,9 +1,11 @@
 import './Controls.css'
-import { VscRunAll, VscDebugStop, VscBookmark, VscSaveAll } from 'react-icons/vsc'
+import { VscRunAll, VscDebugStop, VscBookmark } from 'react-icons/vsc'
+import { generateVehicleReportPdf } from '../../utils/pdfUtils';
 import { FaSpinner } from 'react-icons/fa'
 import { useState } from 'react'
+import { TbFileExport  } from 'react-icons/tb';
 
-const Controls = ({ isRunning, setIsRunning }) => {
+const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDhcpAction = async () => {
@@ -45,10 +47,14 @@ const Controls = ({ isRunning, setIsRunning }) => {
         }
       </button>
       <div className="control-btn">
-        <VscSaveAll />
-      </div>
-      <div className="control-btn">
         <VscBookmark />
+      </div>
+      <div className='control-btn' onClick={() => {
+        if(isRecorded) {
+          generateVehicleReportPdf(vehicleInfo);
+        }
+      }}>
+        <TbFileExport />
       </div>
     </div>
   )

@@ -46,17 +46,25 @@
 }
 
 .status-content {
-    color: var(--valid-color);
     margin-left: 15px;
-    margin-right: 4px;
 }
 
-.status-option {
-    cursor: pointer;
+.status-content.recorded {
+    color: var(--valid-color);
+}
+
+.status-content.unrecorded {
+    color: var(--invalid-color);
+}
+
+.export-button {
+    background-color: transparent;
     color: var(--text-secondary);
-    margin-left: 4px;
+    border: none;
+    margin-top: 3px;
+    cursor: pointer;
 }
 
-.status-option:hover {
+.export-button:hover {
     color: var(--text-primary);
 }
