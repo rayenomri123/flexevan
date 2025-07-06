@@ -153,15 +153,40 @@ ipcMain.handle('add-report', async (event, report) => {
 ipcMain.handle('search-reports', async (event, query) => {
   try {
     const db = getDb();
-    const reports = db.prepare(`
-      SELECT r.id, r.title, r.vehicle_identification_number, r.ecu_serial_number_data_identifier,
-             r.system_supplier_identifier, r.vehicle_manufacturer_ecu_hardware_number,
-             r.manufacturer_spare_part_number, r.created_at
+    const sanitized = query
+      .replace(/[^A-Za-z0-9 ]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // If the user’s query is now empty, bail out early:
+    if (!sanitized) {
+      return [];
+    }
+
+    // Build an AND‑search with prefix matching on each term:
+    const ftsQuery = sanitized
+      .split(' ')
+      .map(token => `${token}*`)
+      .join(' AND ');
+
+    // Execute the FTS query
+    const stmt = db.prepare(`
+      SELECT
+        r.id,
+        r.title,
+        r.vehicle_identification_number AS vin,
+        r.ecu_serial_number_data_identifier AS sn_di,
+        r.system_supplier_identifier AS supplier_id,
+        r.vehicle_manufacturer_ecu_hardware_number AS hw_number,
+        r.manufacturer_spare_part_number AS part_number,
+        r.created_at
       FROM reports_fts fts
       JOIN reports r ON fts.rowid = r.id
       WHERE fts.title MATCH ?
-      ORDER BY rank
-    `).all(query);
+      ORDER BY rank;
+    `);
+    const reports = stmt.all(ftsQuery);
+
     return reports;
   } catch (error) {
     console.error('Error searching reports:', error);
