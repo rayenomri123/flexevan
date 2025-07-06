@@ -1,6 +1,6 @@
 import './Settings.css';
 import { VscChevronRight, VscChevronDown, VscChevronUp, VscSaveAll } from 'react-icons/vsc';
-import { CiServer,  } from 'react-icons/ci';
+import { CiServer } from 'react-icons/ci';
 import { PiDevices } from 'react-icons/pi';
 import { useState, useEffect, useRef } from 'react';
 
@@ -28,18 +28,10 @@ const Settings = () => {
       try {
         const interfacesData = await window.electronAPI.getNetworkInterfaces();
         setInterfaces(interfacesData);
-
         const settingsData = await window.electronAPI.getSettings();
-        if (settingsData) {
-          setSettings(settingsData);
-        }
+        if (settingsData) setSettings(settingsData);
       } catch (error) {
         console.error('Error fetching data:', error);
-        setInterfaces([
-          { name: 'eth0', address: '192.168.1.1' },
-          { name: 'Ethernet 1', address: '192.168.2.1' },
-          { name: 'Ethernet 2', address: '192.168.3.1' },
-        ]);
       } finally {
         setIsLoading(false);
       }
@@ -88,143 +80,129 @@ const Settings = () => {
 
   return (
     <div className='settings-container'>
-    <div className="settings-container-left">
-      <div className={`settings-container-left-btn-container ${isSCOpen ? 'active' : ''}`} onClick={() => { setIsSCOpen(true); setIsCCOpen(false) }}>
-        <div className="settings-container-left-icon" >
-          <CiServer />
+      <div className="settings-container-left">
+        <div
+          className={`settings-container-left-btn-container ${isSCOpen ? 'active' : ''}`}
+          onClick={() => { setIsSCOpen(true); setIsCCOpen(false); }}
+        >
+          <div className="settings-container-left-icon"><CiServer /></div>
+          <button className="settings-container-left-btn">Server</button>
         </div>
-        <button className="settings-container-left-btn">Server</button>
-      </div>
-      <div className={`settings-container-left-btn-container ${isCCOpen ? 'active' : ''}`} onClick={() => { setIsCCOpen(true); setIsSCOpen(false) }}>
-        <div className="settings-container-left-icon">
-          <PiDevices />
+        <div
+          className={`settings-container-left-btn-container ${isCCOpen ? 'active' : ''}`}
+          onClick={() => { setIsCCOpen(true); setIsSCOpen(false); }}
+        >
+          <div className="settings-container-left-icon"><PiDevices /></div>
+          <button className="settings-container-left-btn">Client</button>
         </div>
-        <button className="settings-container-left-btn">Client</button>
       </div>
-      
-    </div>
-    {isSCOpen ? (
-    <div className="settings-container-right-server">
-        <div className="settings-container-title">Server Configuration</div>
-      <form className="dhcp-form" onSubmit={handleSave}>
 
-        <div className="form-group" ref={dropdownRef}>
-          <label>Interface / Adapter</label>
-          <div
-            className={`custom-dropdown ${dropdownOpen ? 'open' : ''}`}
-            onClick={() => !isLoading && setDropdownOpen(o => !o)}
-          >
-            <div className="dropdown-selected">
-              { isLoading
-                ? 'Loading interfaces...'
-                : (selectedIface
-                    ? `${selectedIface.name} (${selectedIface.address})`
-                    : 'Select an interface')
-              }
-              {dropdownOpen ? <VscChevronUp className="dropdown-icon"/> : <VscChevronDown className="dropdown-icon"/>}
-            </div>
-            <div className="dropdown-items">
-              {interfaces.map(iface => (
-                <div
-                  key={iface.name}
-                  className="dropdown-item"
-                  onClick={() => handleInterfaceSelect(iface)}
-                >
-                  {iface.name} ({iface.address})
+      <div className="settings-container-right">
+        <div className="settings-container-title">
+          {isSCOpen ? 'Server Configuration' : 'Client Configuration'}
+        </div>
+
+        <div className="conf-container">
+          <form className="dhcp-form" onSubmit={handleSave}>
+            {isSCOpen ? (
+              <>
+                <div className="form-group" ref={dropdownRef}>
+                  <label>Interface / Adapter</label>
+                  <div
+                    className={`custom-dropdown ${dropdownOpen ? 'open' : ''}`}
+                    onClick={() => !isLoading && setDropdownOpen(o => !o)}
+                  >
+                    <div className="dropdown-selected">
+                      {isLoading
+                        ? 'Loading interfaces...'
+                        : selectedIface
+                          ? `${selectedIface.name} (${selectedIface.address})`
+                          : 'Select an interface'
+                      }
+                      {dropdownOpen ? <VscChevronUp className="dropdown-icon" /> : <VscChevronDown className="dropdown-icon" />}
+                    </div>
+                    <div className="dropdown-items">
+                      {interfaces.map(iface => (
+                        <div
+                          key={iface.name}
+                          className="dropdown-item"
+                          onClick={() => handleInterfaceSelect(iface)}
+                        >
+                          {iface.name} ({iface.address})
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ))}
-              {interfaces.length === 0 && !isLoading && (
-                <div className="dropdown-item disabled">No interfaces available</div>
+
+                <div className="form-group">
+                  <label htmlFor="hostIp">Host IP / Gateway IP</label>
+                  <input
+                    type="text"
+                    id="hostIp"
+                    name="host_ip"
+                    value={settings.host_ip}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="subnetMask">Subnet Mask</label>
+                  <input
+                    type="text"
+                    id="subnetMask"
+                    name="subnet_mask"
+                    value={settings.subnet_mask}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Pool Range</label>
+                  <div className="pool-range-inputs">
+                    <input
+                      type="text"
+                      id="poolStart"
+                      name="pool_start"
+                      value={settings.pool_start}
+                      onChange={handleInputChange}
+                    />
+                    <VscChevronRight className='right-chevron' />
+                    <input
+                      type="text"
+                      id="poolEnd"
+                      name="pool_end"
+                      value={settings.pool_end}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="form-group">
+                <label htmlFor="logic_ad">Logical Address</label>
+                <input
+                  type="text"
+                  id="logic_ad"
+                  name="logic_ad"
+                  value={settings.logic_ad}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
+
+            <button type="submit" className="save-button">
+              Save <VscSaveAll />
+            </button>
+
+            <div className="message-container">
+              {message && (
+                <div className={`save-message ${messageType}`}>{message}</div>
               )}
             </div>
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="hostIp">Host IP / Gateway IP</label>
-          <input
-            type="text"
-            id="hostIp"
-            name="host_ip"
-            placeholder="e.g. 192.168.1.1"
-            value={settings.host_ip}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="subnetMask">Subnet Mask</label>
-          <input
-            type="text"
-            id="subnetMask"
-            name="subnet_mask"
-            placeholder="e.g. 255.255.255.0"
-            value={settings.subnet_mask}
-            onChange={handleInputChange}
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Pool Range</label>
-          <div className="pool-range-inputs">
-            <input
-              type="text"
-              id="poolStart"
-              name="pool_start"
-              placeholder="e.g. 192.168.1.100"
-              value={settings.pool_start}
-              onChange={handleInputChange}
-            />
-            <VscChevronRight className='right-chevron' />
-            <input
-              type="text"
-              id="poolEnd"
-              name="pool_end"
-              placeholder="e.g. 192.168.1.150"
-              value={settings.pool_end}
-              onChange={handleInputChange}
-            />
-          </div>
-        </div>
-
-        <button type="submit" className="save-button">
-          Save <VscSaveAll />
-        </button>
-
-        <div className="message-container">
-          {message && (
-            <div className={`save-message ${messageType}`}>{message}</div>
-          )}
-        </div>
-      </form>
-      </div>
-      ) : (
-        <div className="settings-container-right-client">
-          <div className="settings-container-title">Client Configuration</div>
-          <form className="dhcp-form" onSubmit={handleSave}>
-            <div className="form-group">
-              <label htmlFor="hostIp">Logical Address</label>
-              <input
-                type="text"
-                id="hostIp"
-                name="logic_ad"
-                value={settings.logic_ad}
-                onChange={handleInputChange}
-                placeholder="e.g. 0x00405F10"
-              />
-            </div>
-              <button type="submit" className="save-button">
-                Save <VscSaveAll />
-              </button>
-
-              <div className="message-container">
-                {message && (
-                  <div className={`save-message ${messageType}`}>{message}</div>
-                )}
-              </div>
           </form>
-        </div>        
-      )}
+        </div>
+      </div>
     </div>
   );
 };

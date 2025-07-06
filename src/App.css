@@ -1,0 +1,20 @@
+.bg-container {
+  position: relative;
+  padding: 0 100px;
+  overflow: hidden;
+}
+
+.bg-container::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('./assets/logo.png') no-repeat;
+  background-size: 60%;
+  background-position: center 20px ;
+  opacity: 0.02;
+  z-index: -1;
+}
+
+.app-container {
+  position: relative;
+}
