@@ -7,4 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   startDhcp: () => ipcRenderer.invoke('start-dhcp'),
   stopDhcp: () => ipcRenderer.invoke('stop-dhcp'),
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  fetchReports: () => ipcRenderer.invoke('fetch-reports'),
+  addReport: (report) => ipcRenderer.invoke('add-report', report),
+  searchReports: (query) => ipcRenderer.invoke('search-reports', query),
 });

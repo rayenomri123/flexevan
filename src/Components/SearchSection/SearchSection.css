@@ -15,13 +15,18 @@
     align-items: center;
     justify-content: center;
 }
+
 .card-container {
     height: 90%;
     width: 100%;
     display: flex;
     flex-direction: column;
-    padding: 80px 0 0 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 10px 0 0 0;
     gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
 }
 
 .search-input {

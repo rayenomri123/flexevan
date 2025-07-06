@@ -11,7 +11,7 @@
 
 .info-title {
     font-size: 1.1rem;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     margin: 0 auto;
 }
 
@@ -36,6 +36,10 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
   padding-bottom: 2px;
+}
+
+.info-label.recorded {
+  color: #3498db;
 }
 
 .info-value {

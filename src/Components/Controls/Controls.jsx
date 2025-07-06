@@ -5,7 +5,7 @@ import { FaSpinner } from 'react-icons/fa'
 import { useState } from 'react'
 import { TbFileExport  } from 'react-icons/tb';
 
-const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo }) => {
+const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave, setIsToSave }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDhcpAction = async () => {
@@ -47,7 +47,7 @@ const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo }) => {
         }
       </button>
       <div className="control-btn">
-        <VscBookmark />
+        <VscBookmark onClick={(() => setIsToSave(true))} />
       </div>
       <div className='control-btn' onClick={() => {
         if(isRecorded) {

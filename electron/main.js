@@ -105,6 +105,70 @@ ipcMain.handle('save-settings', async (event, settings) => {
   }
 });
 
+// IPC handler to fetch all reports
+ipcMain.handle('fetch-reports', async () => {
+  try {
+    const db = getDb();
+    const reports = db.prepare(`
+      SELECT id, title, vehicle_identification_number, ecu_serial_number_data_identifier,
+             system_supplier_identifier, vehicle_manufacturer_ecu_hardware_number,
+             manufacturer_spare_part_number, created_at
+      FROM reports
+      ORDER BY created_at DESC
+    `).all();
+    return reports;
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    throw error;
+  }
+});
+
+// IPC handler to add a new report
+ipcMain.handle('add-report', async (event, report) => {
+  try {
+    const db = getDb();
+    const stmt = db.prepare(`
+      INSERT INTO reports (
+        title, vehicle_identification_number, ecu_serial_number_data_identifier,
+        system_supplier_identifier, vehicle_manufacturer_ecu_hardware_number,
+        manufacturer_spare_part_number
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      report.title,
+      report.vehicle_identification_number,
+      report.ecu_serial_number_data_identifier,
+      report.system_supplier_identifier,
+      report.vehicle_manufacturer_ecu_hardware_number,
+      report.manufacturer_spare_part_number
+    );
+    return { id: result.lastInsertRowid, ...report, created_at: new Date().toISOString() };
+  } catch (error) {
+    console.error('Error adding report:', error);
+    throw error;
+  }
+});
+
+// IPC handler for FTS search by title
+ipcMain.handle('search-reports', async (event, query) => {
+  try {
+    const db = getDb();
+    const reports = db.prepare(`
+      SELECT r.id, r.title, r.vehicle_identification_number, r.ecu_serial_number_data_identifier,
+             r.system_supplier_identifier, r.vehicle_manufacturer_ecu_hardware_number,
+             r.manufacturer_spare_part_number, r.created_at
+      FROM reports_fts fts
+      JOIN reports r ON fts.rowid = r.id
+      WHERE fts.title MATCH ?
+      ORDER BY rank
+    `).all(query);
+    return reports;
+  } catch (error) {
+    console.error('Error searching reports:', error);
+    throw error;
+  }
+});
+
 // Helper function to validate IP against subnet
 function isIpInSubnet(ip, subnetIp, subnetMask) {
   const ipParts = ip.split('.').map(Number);
@@ -227,6 +291,7 @@ ipcMain.handle('start-dhcp', async () => {
         }
       } else if (process.platform === 'win32') {
         const ipConfig = execSync(`netsh interface ip show address "${settings.interface_name}"`).toString();
+        ifW
         if (!ipConfig.includes(settings.host_ip)) {
           execSync(`netsh interface ip add address "${settings.interface_name}" ${settings.host_ip} ${settings.subnet_mask}`);
         }

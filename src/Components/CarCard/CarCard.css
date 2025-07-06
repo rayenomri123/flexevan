@@ -10,6 +10,16 @@
     cursor: pointer;
 }
 
+.carcard-container:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color-hover);
+}
+
+.carcard-container.selected {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color-hover);
+}
+
 .carcard-img {
     width: 100px;
     margin-left: auto;

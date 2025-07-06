@@ -44,7 +44,7 @@ test_values = {
     'ecuSerialNumberDataIdentifier': 'ECUSERIAL0001',
     'systemSupplierIdentifier': 'SUPPLIERID',
     'vehicleManufacturerEcuHardwareNumber': 'HWNUMBER123',
-    'manufacturerSparePartNumber': 'PARTNUM000'
+    'manufacturerSparePartNumber': 'ooooooooooooo'
 }
 
 
