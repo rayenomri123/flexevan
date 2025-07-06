@@ -5,7 +5,7 @@ import { FaSpinner } from 'react-icons/fa'
 import { useState } from 'react'
 import { TbFileExport  } from 'react-icons/tb';
 
-const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave, setIsToSave }) => {
+const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave, setIsToSave, reports, selectedReportId }) => {
   const [loading, setLoading] = useState(false);
 
   const handleDhcpAction = async () => {
@@ -34,6 +34,8 @@ const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave,
     }
   };
 
+  const selectedReport = reports.find((report) => report.id === selectedReportId);
+
   return (
     <div className='controls-container'>
       <button 
@@ -50,8 +52,11 @@ const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave,
         <VscBookmark onClick={(() => setIsToSave(true))} />
       </div>
       <div className='control-btn' onClick={() => {
-        if(isRecorded) {
+        if(isRecorded && !selectedReportId) {
           generateVehicleReportPdf(vehicleInfo);
+        }
+        else if (selectedReportId) {
+          generateVehicleReportPdf(selectedReport);
         }
       }}>
         <TbFileExport />

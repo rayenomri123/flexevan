@@ -2,7 +2,7 @@ import './CarProfile.css';
 import car from '../../assets/car.png';
 import { generateVehicleReportPdf } from '../../utils/pdfUtils';
 
-const CarProfile = ({ isRecorded, vehicleInfo }) => {
+const CarProfile = ({ isRecorded, vehicleInfo, selectedReportId }) => {
   return (
     <div className="carprofile-container">
       <div className="car-title">FlexEvan</div>
@@ -12,10 +12,10 @@ const CarProfile = ({ isRecorded, vehicleInfo }) => {
       </div>
       <div className="car-status">
         Status:
-        <span className={`status-content ${isRecorded ? 'recorded' : 'unrecorded'}`}>
-          {isRecorded ? 'Recorded' : 'Unrecorded'}
+        <span className={`status-content ${isRecorded && !selectedReportId ? 'recorded' : 'unrecorded'}`}>
+          {isRecorded && !selectedReportId ? 'Recorded' : 'Unrecorded'}
         </span>
-        {isRecorded && (
+        {isRecorded && !selectedReportId && (
           <button
             onClick={() => generateVehicleReportPdf(vehicleInfo)}
             className="export-button"

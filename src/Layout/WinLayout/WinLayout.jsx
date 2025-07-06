@@ -97,7 +97,7 @@ const WinLayout = () => {
                     vehicleInfo={vehicleInfo}
                     setVehicleInfo={setVehicleInfo}
                     reports={reports}
-                    selectedReportId={selectedReportId} // Pass selectedReportId
+                    selectedReportId={selectedReportId}
                   />
                 </div>
                 <div className="right-top-right-section">
@@ -106,6 +106,7 @@ const WinLayout = () => {
                     setIsRecorded={setIsRecorded}
                     vehicleInfo={vehicleInfo}
                     setVehicleInfo={setVehicleInfo}
+                    selectedReportId={selectedReportId}
                   />
                 </div>
               </div>
@@ -122,6 +123,8 @@ const WinLayout = () => {
               vehicleInfo={vehicleInfo}
               isToSave={isToSave}
               setIsToSave={setIsToSave}
+              reports={reports}
+              selectedReportId={selectedReportId}
             />
           </div>
         </>

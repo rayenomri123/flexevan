@@ -44,7 +44,7 @@ const Output = ({ isRecorded, setIsRecorded, vehicleInfo, setVehicleInfo, report
   function InfoItem({ label, value, index }) {
     return (
       <div className={`info-item ${index % 2 === 0 ? 'even-item' : ''}`}>
-        <div className={`info-label ${isRecorded ? 'recorded' : ''}`}>{label}:</div>
+        <div className={`info-label ${isRecorded && !selectedReportId ? 'recorded' : ''}`}>{label}:</div>
         <div className="info-value">{value}</div>
       </div>
     );
