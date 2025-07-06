@@ -14,7 +14,7 @@ import UdsCommunication from '../../Components/UdsCommunication/UdsCommunication
 const WinLayout = () => {
   const [isSearchSectionOpen, setIsSearchSectionOpen] = useState(true)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHomeOpen, setIsHomeOpen] = useState(false);
+  const [isHomeOpen, setIsHomeOpen] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const settingsRef = useRef(null);
 

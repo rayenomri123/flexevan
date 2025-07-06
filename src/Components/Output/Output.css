@@ -41,4 +41,5 @@
 .info-value {
   color: var(--text-primary);
   font-size: 0.8rem;
+  min-height: 17px;
 }
