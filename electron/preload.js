@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchReports: () => ipcRenderer.invoke('fetch-reports'),
   addReport: (report) => ipcRenderer.invoke('add-report', report),
   searchReports: (query) => ipcRenderer.invoke('search-reports', query),
+  fetchUsers: () => ipcRenderer.invoke('fetch-users'),
+  updateUserLoggedIn: (userData) => ipcRenderer.invoke('update-user-loggedin', userData),
 });

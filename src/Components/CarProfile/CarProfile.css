@@ -32,6 +32,11 @@
     align-items: center;
 }
 
+.logo-img {
+    height: 232px;
+    opacity: 0.3;
+}
+
 .car-img {
     height: 350px;
 }
@@ -51,10 +56,6 @@
 
 .status-content.recorded {
     color: var(--valid-color);
-}
-
-.status-content.unrecorded {
-    color: var(--invalid-color);
 }
 
 .export-button {

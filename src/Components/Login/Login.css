@@ -1,0 +1,96 @@
+.auth-login-container {
+    width: min(350px, 90vw);
+    min-height: 350px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    font-family: system-ui;
+    padding: 20px;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+.auth-login-title {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1.4rem;
+}
+
+.auth-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.auth-login-form label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.auth-login-form input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    font-size: 14px;
+}
+
+.auth-login-form input:focus {
+    outline: none;
+    border-color: var(--border-color-hover);
+    background-color: var(--bg-tertiary);
+}
+
+.login-form {
+    width: 100%;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-login-btn {
+    color: var(--text-secondary);
+    background-color: var(--bg-primary);
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 50%;
+    max-width: 280px;
+    margin-top: 30px;
+}
+
+.auth-login-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-secondary-hover);
+    border: 1px solid var(--border-color-hover);
+}
+
+.auth-login-btn:active {
+    color: black;
+    background-color: white;
+}
+
+.auth-login-error-message {
+    font-size: 12px;
+    color: var(--invalid-color);
+    text-align: center;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.auth-login-error-message.auth-success {
+    color: var(--valid-color);
+}

@@ -139,3 +139,15 @@
     color: black;
     border: 1px solid black;
 }
+
+.login-section {
+    position: fixed;
+    height: 100vh;
+    width: 100vw;
+    z-index: 100000;
+    background-color: var(--bg-primary);
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

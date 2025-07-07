@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import './WinLayout.css';
 import doc from '../../assets/doc.png';
 import { VscClose } from 'react-icons/vsc';
@@ -10,6 +10,7 @@ import Controls from '../../Components/Controls/Controls';
 import SearchSection from '../../Components/SearchSection/SearchSection';
 import Settings from '../../Components/Settings/Settings';
 import SaveField from '../../Components/SaveField/SaveField';
+import Login from '../../Components/Login/Login';
 
 const WinLayout = () => {
   const [isSearchSectionOpen, setIsSearchSectionOpen] = useState(true);
@@ -27,7 +28,8 @@ const WinLayout = () => {
     manufacturerSparePartNumber: ''
   });
   const [reports, setReports] = useState([]);
-  const [selectedReportId, setSelectedReportId] = useState(null); // Add state for selected report
+  const [selectedReportId, setSelectedReportId] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const settingsRef = useRef(null);
   const saveRef = useRef(null);
 
@@ -39,99 +41,140 @@ const WinLayout = () => {
     }
   };
 
+  // Poll login status every 1 second
+  const fetchLoginStatus = async () => {
+    try {
+      // fetch all users and find the one with loggedin === '1'
+      const users = await window.electronAPI.fetchUsers();
+      const loggedInUser = users.find(u => Number(u.loggedin) === 1);
+      setIsLoggedIn(Boolean(loggedInUser));
+    } catch (err) {
+      console.error('Error fetching login status:', err);
+      setIsLoggedIn(false);
+    }
+  };
+
+  useEffect(() => {
+    // initial fetch
+    fetchLoginStatus();
+    // start polling
+    const intervalId = setInterval(fetchLoginStatus, 500);
+    // cleanup on unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
   return (
     <div className='layout-container'>
-      {isSettingsOpen && (
-        <div className="settings-section" onClick={handleOutsideClick}>
-          <div className="settings-section-close-btn" onClick={() => setIsSettingsOpen(false)}>
-            <VscClose />
-          </div>
-          <div ref={settingsRef}>
-            <Settings />
-          </div>
+      {/* If not logged in, show Login */}
+      {!isLoggedIn && (
+        <div className="login-section">
+          <Login />
         </div>
       )}
-      {isRecorded && isToSave && (
-        <div className="settings-section" onClick={handleOutsideClick}>
-          <div className="save-section-close-btn" onClick={() => setIsToSave(false)}>
-            <VscClose />
-          </div>
-          <div ref={saveRef}>
-            <SaveField vehicleInfo={vehicleInfo} setIsToSave={setIsToSave} setRefresh={setRefresh} />
-          </div>
-        </div>
-      )}
-      <div className="navigation-section">
-        <NavigationSection
-          isSettingsOpen={isSettingsOpen}
-          setIsSettingsOpen={setIsSettingsOpen}
-          isSearchSectionOpen={isSearchSectionOpen}
-          setIsSearchSectionOpen={setIsSearchSectionOpen}
-          isHomeOpen={isHomeOpen}
-          setIsHomeOpen={setIsHomeOpen}
-          isRunning={isRunning}
-          setIsRunning={setIsRunning}
-        />
-      </div>
-      {isHomeOpen ? (
-        <>
-          <div className="mid-section">
-            {isSearchSectionOpen && (
-              <div className="left-section">
-                {!refresh && (
-                  <SearchSection
-                    reports={reports}
-                    setReports={setReports}
-                    selectedReportId={selectedReportId} // Pass selectedReportId
-                    setSelectedReportId={setSelectedReportId} // Pass setter
-                  />
-                )}
+
+      {/* Main app UI when logged in */}
+      {isLoggedIn && (
+        <>  
+          {isSettingsOpen && (
+            <div className="settings-section" onClick={handleOutsideClick}>
+              <div className="settings-section-close-btn" onClick={() => setIsSettingsOpen(false)}>
+                <VscClose />
               </div>
-            )}
-            <div className="right-section">
-              <div className="right-top-section">
-                <div className="right-top-left-section">
-                  <Output
-                    isRecorded={isRecorded}
-                    setIsRecorded={setIsRecorded}
-                    vehicleInfo={vehicleInfo}
-                    setVehicleInfo={setVehicleInfo}
-                    reports={reports}
-                    selectedReportId={selectedReportId}
-                  />
-                </div>
-                <div className="right-top-right-section">
-                  <CarProfile
-                    isRecorded={isRecorded}
-                    setIsRecorded={setIsRecorded}
-                    vehicleInfo={vehicleInfo}
-                    setVehicleInfo={setVehicleInfo}
-                    selectedReportId={selectedReportId}
-                  />
-                </div>
-              </div>
-              <div className="right-bottom-section">
-                <Console />
+              <div ref={settingsRef}>
+                <Settings />
               </div>
             </div>
-          </div>
-          <div className="control-section">
-            <Controls
+          )}
+          {isRecorded && isToSave && (
+            <div className="settings-section" onClick={handleOutsideClick}>
+              <div className="save-section-close-btn" onClick={() => setIsToSave(false)}>
+                <VscClose />
+              </div>
+              <div ref={saveRef}>
+                <SaveField
+                  vehicleInfo={vehicleInfo}
+                  setIsToSave={setIsToSave}
+                  setRefresh={setRefresh}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="navigation-section">
+            <NavigationSection
+              isSettingsOpen={isSettingsOpen}
+              setIsSettingsOpen={setIsSettingsOpen}
+              isSearchSectionOpen={isSearchSectionOpen}
+              setIsSearchSectionOpen={setIsSearchSectionOpen}
+              isHomeOpen={isHomeOpen}
+              setIsHomeOpen={setIsHomeOpen}
               isRunning={isRunning}
               setIsRunning={setIsRunning}
-              isRecorded={isRecorded}
-              vehicleInfo={vehicleInfo}
-              isToSave={isToSave}
-              setIsToSave={setIsToSave}
-              reports={reports}
-              selectedReportId={selectedReportId}
             />
           </div>
+
+          {isHomeOpen ? (
+            <>
+              <div className="mid-section">
+                {isSearchSectionOpen && (
+                  <div className="left-section">
+                    {!refresh && (
+                      <SearchSection
+                        reports={reports}
+                        setReports={setReports}
+                        selectedReportId={selectedReportId}
+                        setSelectedReportId={setSelectedReportId}
+                      />
+                    )}
+                  </div>
+                )}
+                <div className="right-section">
+                  <div className="right-top-section">
+                    <div className="right-top-left-section">
+                      <Output
+                        isRecorded={isRecorded}
+                        setIsRecorded={setIsRecorded}
+                        vehicleInfo={vehicleInfo}
+                        setVehicleInfo={setVehicleInfo}
+                        reports={reports}
+                        selectedReportId={selectedReportId}
+                      />
+                    </div>
+                    <div className="right-top-right-section">
+                      <CarProfile
+                        isRecorded={isRecorded}
+                        setIsRecorded={setIsRecorded}
+                        vehicleInfo={vehicleInfo}
+                        setVehicleInfo={setVehicleInfo}
+                        selectedReportId={selectedReportId}
+                      />
+                    </div>
+                  </div>
+                  <div className="right-bottom-section">
+                    <Console isRunning={isRunning} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="control-section">
+                <Controls
+                  isRunning={isRunning}
+                  setIsRunning={setIsRunning}
+                  isRecorded={isRecorded}
+                  vehicleInfo={vehicleInfo}
+                  isToSave={isToSave}
+                  setIsToSave={setIsToSave}
+                  reports={reports}
+                  selectedReportId={selectedReportId}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="documentation-section">
+              <img src={doc} alt="Documentation" className='documentation-img' />
+            </div>
+          )}
         </>
-      ) : (
-        <div className="documentation-section">
-          <img src={doc} alt="Documentation" className='documentation-img' />
-        </div>
       )}
     </div>
   );

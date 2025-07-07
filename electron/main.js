@@ -6,6 +6,8 @@ const { initDatabase, getDb } = require('./database');
 const dhcp = require('dhcp');
 
 let server; // Store the DHCP server instance
+let nextPort = 5000;
+const devicePorts = new Map(); // Maps MAC address to Flask port
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -194,6 +196,32 @@ ipcMain.handle('search-reports', async (event, query) => {
   }
 });
 
+// IPC handler to fetch all users
+ipcMain.handle('fetch-users', async () => {
+  try {
+    const db = getDb();
+    // Include password field for login validation
+    const users = db.prepare('SELECT id, username, password, loggedin FROM users').all();
+    return users;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+});
+
+// IPC handler to update loggedin status
+ipcMain.handle('update-user-loggedin', async (event, { id, loggedin }) => {
+  try {
+    const db = getDb();
+    const stmt = db.prepare('UPDATE users SET loggedin = ? WHERE id = ?');
+    stmt.run(loggedin, id);
+    return { success: true, id, loggedin };
+  } catch (error) {
+    console.error('Error updating user loggedin status:', error);
+    throw error;
+  }
+});
+
 // Helper function to validate IP against subnet
 function isIpInSubnet(ip, subnetIp, subnetMask) {
   const ipParts = ip.split('.').map(Number);
@@ -316,7 +344,7 @@ ipcMain.handle('start-dhcp', async () => {
         }
       } else if (process.platform === 'win32') {
         const ipConfig = execSync(`netsh interface ip show address "${settings.interface_name}"`).toString();
-        ifW
+        
         if (!ipConfig.includes(settings.host_ip)) {
           execSync(`netsh interface ip add address "${settings.interface_name}" ${settings.host_ip} ${settings.subnet_mask}`);
         }
@@ -353,61 +381,53 @@ ipcMain.handle('start-dhcp', async () => {
       });
     });
     server.on('bound', (state) => {
-      // Log the full state for debugging
-      console.log('Bound event state:', JSON.stringify(state, null, 2));
-
-      // Extract the MAC address (first key in the state object)
       const macAddress = Object.keys(state)[0];
-      if (!macAddress || !isValidMac(macAddress)) {
-        console.error('Invalid bound event data: No valid MAC address found', state);
-        return;
-      }
-
-      // Extract the device data
       const deviceData = state[macAddress];
-      if (!deviceData || !deviceData.address || !isValidIp(deviceData.address)) {
-        console.error('Invalid bound event data: Missing or invalid IP address', state);
-        return;
-      }
-
       const ipAddress = deviceData.address;
       const chaddr = macAddress;
 
       console.log(`New device assigned IP: ${ipAddress} (MAC: ${chaddr})`);
 
-      // Get the logical address from the database
       const db = getDb();
       const settings = db.prepare('SELECT logic_ad FROM settings ORDER BY id DESC LIMIT 1').get();
-      if (!settings || !settings.logic_ad) {
-        console.error('No logical address found in settings');
-        return;
-      }
       const logicalAddress = settings.logic_ad;
 
-      // Introduce a 20-second delay before running uds.py
-      const delayInSeconds = 20;
-      setTimeout(() => {
-        // Run the uds.py script with the assigned IP and logical address
-        const pythonScriptPath = path.join(__dirname, 'uds.py');
-        const pythonProcess = spawn('python', [pythonScriptPath, '-i', ipAddress, '-l', logicalAddress]);
+      // Assign a port if not already assigned
+      let port = devicePorts.get(chaddr);
+      if (!port) {
+        port = nextPort++;
+        devicePorts.set(chaddr, port);
+      }
 
-        pythonProcess.stdout.on('data', (data) => {
-          console.log(`uds.py stdout: ${data}`);
-        });
+      // Spawn uds.py immediately with IP, logical address, and port
+      const pythonScriptPath = path.join(__dirname, 'uds.py');
+      const pythonProcess = spawn('python', [
+        pythonScriptPath,
+        '-i', ipAddress,
+        '-l', logicalAddress,
+        '-p', port.toString()
+      ]);
 
-        pythonProcess.stderr.on('data', (data) => {
-          console.error(`uds.py stderr: ${data}`);
-        });
+      pythonProcess.stdout.on('data', (data) => {
+        console.log(`uds.py stdout (MAC: ${chaddr}): ${data}`);
+      });
 
-        pythonProcess.on('close', (code) => {
-          console.log(`uds.py process exited with code ${code}`);
-        });
-      }, delayInSeconds * 1000);
+      pythonProcess.stderr.on('data', (data) => {
+        console.error(`uds.py stderr (MAC: ${chaddr}): ${data}`);
+      });
 
-      // Send IP to renderer immediately
+      pythonProcess.on('close', (code) => {
+        console.log(`uds.py process for MAC ${chaddr} exited with code ${code}`);
+        if (code !== 0) {
+          devicePorts.delete(chaddr); // Free the port if the process failed
+        }
+      });
+
+      // Notify renderer with port information
       BrowserWindow.getAllWindows()[0].webContents.send('device-connected', {
         ip: ipAddress,
-        mac: chaddr
+        mac: chaddr,
+        port: port
       });
     });
     server.listen();

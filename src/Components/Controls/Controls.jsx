@@ -49,7 +49,7 @@ const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave,
         }
       </button>
       <div className="control-btn">
-        <VscBookmark onClick={(() => setIsToSave(true))} />
+        <VscBookmark onClick={(() => {if(!selectedReportId) setIsToSave(true)})} />
       </div>
       <div className='control-btn' onClick={() => {
         if(isRecorded && !selectedReportId) {
