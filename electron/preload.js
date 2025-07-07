@@ -12,4 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchReports: (query) => ipcRenderer.invoke('search-reports', query),
   fetchUsers: () => ipcRenderer.invoke('fetch-users'),
   updateUserLoggedIn: (userData) => ipcRenderer.invoke('update-user-loggedin', userData),
+  getDhcpLogs: () => ipcRenderer.invoke('get-dhcp-logs'),
+  onDhcpLog: (callback) => ipcRenderer.on('dhcp-log', (event, log) => callback(log)),
+  on: (channel, callback) => ipcRenderer.on(channel, (event, ...args) => callback(...args)),
 });

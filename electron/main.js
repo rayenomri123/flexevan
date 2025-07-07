@@ -5,13 +5,30 @@ const { execSync, spawn } = require('child_process');
 const { initDatabase, getDb } = require('./database');
 const dhcp = require('dhcp');
 
+const dhcpLogs = [];
+let mainWindow = null; // Store main window reference
 let server; // Store the DHCP server instance
 let nextPort = 5000;
 const devicePorts = new Map(); // Maps MAC address to Flask port
 
+function addDhcpLog(message, level = 'info') {
+  const log = {
+    timestamp: new Date().toISOString(),
+    message,
+    level,
+  };
+  dhcpLogs.push(log);
+  if (dhcpLogs.length > 1000) {
+    dhcpLogs.shift();
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('dhcp-log', log);
+  }
+}
+
 function createWindow() {
-  const win = new BrowserWindow({
-    frame: false, // Remove default title bar
+  mainWindow = new BrowserWindow({
+    frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -20,15 +37,19 @@ function createWindow() {
     },
   });
 
-  win.maximize();
+  mainWindow.maximize();
 
   const isDev = process.env.NODE_ENV !== 'production';
   if (isDev) {
-    win.loadURL('http://localhost:5173');
-    win.webContents.openDevTools();
+    mainWindow.loadURL('http://localhost:5173');
+    // mainWindow.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
 // Request elevation on Windows
@@ -62,10 +83,14 @@ ipcMain.handle('get-network-interfaces', async () => {
   });
 
   const ethernetInterfaces = Array.from(ethernetInterfacesMap.values());
-
   return ethernetInterfaces.length > 0
     ? ethernetInterfaces
     : [{ name: 'Interface', address: 'not found' }];
+});
+
+// IPC handler to get DHCP logs
+ipcMain.handle('get-dhcp-logs', async () => {
+  return dhcpLogs;
 });
 
 // IPC handler to get settings
@@ -75,7 +100,7 @@ ipcMain.handle('get-settings', async () => {
     const row = db.prepare('SELECT * FROM settings ORDER BY id DESC LIMIT 1').get();
     return row || null;
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    addDhcpLog(`Error fetching settings: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -85,7 +110,7 @@ ipcMain.handle('save-settings', async (event, settings) => {
   try {
     const db = getDb();
     const existing = db.prepare('SELECT id FROM settings ORDER BY id DESC LIMIT 1').get();
-    const id = existing ? existing.id : 1; // Use 1 if no settings exist
+    const id = existing ? existing.id : 1;
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO settings (
         id, interface_name, host_ip, subnet_mask, pool_start, pool_end, logic_ad, updated_at
@@ -101,8 +126,9 @@ ipcMain.handle('save-settings', async (event, settings) => {
       settings.pool_end,
       settings.logic_ad
     );
+    return 'Settings saved successfully';
   } catch (error) {
-    console.error('Error saving settings:', error);
+    addDhcpLog(`Error saving settings: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -120,7 +146,7 @@ ipcMain.handle('fetch-reports', async () => {
     `).all();
     return reports;
   } catch (error) {
-    console.error('Error fetching reports:', error);
+    addDhcpLog(`Error fetching reports: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -146,7 +172,7 @@ ipcMain.handle('add-report', async (event, report) => {
     );
     return { id: result.lastInsertRowid, ...report, created_at: new Date().toISOString() };
   } catch (error) {
-    console.error('Error adding report:', error);
+    addDhcpLog(`Error adding report: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -160,18 +186,15 @@ ipcMain.handle('search-reports', async (event, query) => {
       .replace(/\s+/g, ' ')
       .trim();
 
-    // If the user’s query is now empty, bail out early:
     if (!sanitized) {
       return [];
     }
 
-    // Build an AND‑search with prefix matching on each term:
     const ftsQuery = sanitized
       .split(' ')
       .map(token => `${token}*`)
       .join(' AND ');
 
-    // Execute the FTS query
     const stmt = db.prepare(`
       SELECT
         r.id,
@@ -188,10 +211,9 @@ ipcMain.handle('search-reports', async (event, query) => {
       ORDER BY rank;
     `);
     const reports = stmt.all(ftsQuery);
-
     return reports;
   } catch (error) {
-    console.error('Error searching reports:', error);
+    addDhcpLog(`Error searching reports: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -200,11 +222,10 @@ ipcMain.handle('search-reports', async (event, query) => {
 ipcMain.handle('fetch-users', async () => {
   try {
     const db = getDb();
-    // Include password field for login validation
     const users = db.prepare('SELECT id, username, password, loggedin FROM users').all();
     return users;
   } catch (error) {
-    console.error('Error fetching users:', error);
+    addDhcpLog(`Error fetching users: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -217,7 +238,7 @@ ipcMain.handle('update-user-loggedin', async (event, { id, loggedin }) => {
     stmt.run(loggedin, id);
     return { success: true, id, loggedin };
   } catch (error) {
-    console.error('Error updating user loggedin status:', error);
+    addDhcpLog(`Error updating user loggedin status: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -278,20 +299,22 @@ function closeDhcpServer() {
     try {
       server.close();
       server = null;
-      // Remove custom IP from interface
+      devicePorts.clear();
       const db = getDb();
       const settings = db.prepare('SELECT * FROM settings ORDER BY id DESC LIMIT 1').get();
       if (settings) {
         const cidr = maskToCidr(settings.subnet_mask);
         if (process.platform === 'linux') {
           execSync(`ip addr del ${settings.host_ip}/${cidr} dev ${settings.interface_name}`);
+          addDhcpLog(`Removed IP ${settings.host_ip}/${cidr} from ${settings.interface_name}`);
         } else if (process.platform === 'win32') {
           execSync(`netsh interface ip delete address "${settings.interface_name}" ${settings.host_ip}`);
+          addDhcpLog(`Removed IP ${settings.host_ip} from ${settings.interface_name}`);
         }
       }
-      console.log('DHCP server stopped');
+      addDhcpLog('DHCP server stopped');
     } catch (error) {
-      console.error('Error closing DHCP server:', error);
+      addDhcpLog(`Error closing DHCP server: ${error.message}`, 'error');
     }
   }
 }
@@ -299,61 +322,74 @@ function closeDhcpServer() {
 // IPC handler to start the DHCP server
 ipcMain.handle('start-dhcp', async () => {
   if (server) {
-    throw new Error('DHCP server is already running');
+    const errorMsg = 'DHCP server is already running';
+    addDhcpLog(errorMsg, 'error');
+    throw new Error(errorMsg);
   }
   try {
     const db = getDb();
     const settings = db.prepare('SELECT * FROM settings ORDER BY id DESC LIMIT 1').get();
     if (!settings) {
-      throw new Error('No settings found in the database');
+      const errorMsg = 'No settings found in the database';
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
 
-    // Validate settings
     if (!settings.interface_name || !settings.host_ip || !settings.subnet_mask || !settings.pool_start || !settings.pool_end || !settings.logic_ad) {
-      throw new Error('Incomplete DHCP settings');
+      const errorMsg = 'Incomplete DHCP settings';
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
 
-    // Validate IP addresses
     if (!isValidIp(settings.host_ip) || !isValidIp(settings.pool_start) || !isValidIp(settings.pool_end)) {
-      throw new Error('Invalid IP address format in settings');
+      const errorMsg = 'Invalid IP address format in settings';
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
 
-    // Validate IP pool is within subnet
     if (!isIpInSubnet(settings.pool_start, settings.host_ip, settings.subnet_mask) || 
         !isIpInSubnet(settings.pool_end, settings.host_ip, settings.subnet_mask)) {
-      throw new Error('IP pool range is not within the subnet');
+      const errorMsg = 'IP pool range is not within the subnet';
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
 
-    // Validate interface
     const interfaceDetails = os.networkInterfaces()[settings.interface_name];
     if (!interfaceDetails) {
-      throw new Error(`Interface ${settings.interface_name} not found`);
+      const errorMsg = `Interface ${settings.interface_name} not found`;
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
     const interfaceIp = interfaceDetails.find(details => details.family === 'IPv4' && !details.internal)?.address;
     if (!interfaceIp) {
-      throw new Error(`No valid IPv4 address found for ${settings.interface_name}`);
+      const errorMsg = `No valid IPv4 address found for ${settings.interface_name}`;
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(errorMsg);
     }
 
-    // Assign custom IP to interface
     const cidr = maskToCidr(settings.subnet_mask);
     try {
       if (process.platform === 'linux') {
         const ipList = execSync(`ip addr show ${settings.interface_name}`).toString();
         if (!ipList.includes(settings.host_ip)) {
           execSync(`ip addr add ${settings.host_ip}/${cidr} dev ${settings.interface_name}`);
+          addDhcpLog(`Assigned IP ${settings.host_ip}/${cidr} to ${settings.interface_name}`);
         }
       } else if (process.platform === 'win32') {
         const ipConfig = execSync(`netsh interface ip show address "${settings.interface_name}"`).toString();
-        
         if (!ipConfig.includes(settings.host_ip)) {
           execSync(`netsh interface ip add address "${settings.interface_name}" ${settings.host_ip} ${settings.subnet_mask}`);
+          addDhcpLog(`Assigned IP ${settings.host_ip} to ${settings.interface_name}`);
         }
       } else {
-        throw new Error(`Unsupported platform: ${process.platform}`);
+        const errorMsg = `Unsupported platform: ${process.platform}`;
+        addDhcpLog(errorMsg, 'error');
+        throw new Error(errorMsg);
       }
     } catch (ipError) {
-      console.error('Error assigning IP to interface:', ipError);
-      throw new Error(`Failed to assign IP ${settings.host_ip} to ${settings.interface_name}: ${ipError.message}`);
+      const errorMsg = `Failed to assign IP ${settings.host_ip} to ${settings.interface_name}: ${ipError.message}`;
+      addDhcpLog(errorMsg, 'error');
+      throw new Error(ipError);
     }
 
     const options = {
@@ -362,44 +398,51 @@ ipcMain.handle('start-dhcp', async () => {
       router: [settings.host_ip],
       server: settings.host_ip,
       broadcast: calculateBroadcast(settings.host_ip, settings.subnet_mask),
-      interface: settings.interface_name
+      interface: settings.interface_name,
     };
 
     server = dhcp.createServer(options);
     server.on('listening', () => {
-      console.log('DHCP Server started with host IP:', settings.host_ip);
-      BrowserWindow.getAllWindows()[0].webContents.send('dhcp-status', {
-        status: 'running',
-        boundAddress: settings.host_ip
-      });
+      addDhcpLog(`DHCP Server started with host IP: ${settings.host_ip}`);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('dhcp-status', {
+          status: 'running',
+          boundAddress: settings.host_ip
+        });
+      }
     });
     server.on('error', (err) => {
-      console.error('DHCP Server error:', err);
-      BrowserWindow.getAllWindows()[0].webContents.send('dhcp-status', {
-        status: 'error',
-        error: err.message
-      });
+      addDhcpLog(`DHCP Server error: ${err.message}`, 'error');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('dhcp-status', {
+          status: 'error',
+          error: err.message
+        });
+      }
     });
     server.on('bound', (state) => {
       const macAddress = Object.keys(state)[0];
       const deviceData = state[macAddress];
+      if (!deviceData || !deviceData.address) {
+        addDhcpLog(`Invalid device data in bound event: ${JSON.stringify(state)}`, 'error');
+        return;
+      }
       const ipAddress = deviceData.address;
       const chaddr = macAddress;
 
-      console.log(`New device assigned IP: ${ipAddress} (MAC: ${chaddr})`);
+      addDhcpLog(`New device assigned IP: ${ipAddress} (MAC: ${chaddr})`);
 
       const db = getDb();
       const settings = db.prepare('SELECT logic_ad FROM settings ORDER BY id DESC LIMIT 1').get();
+      if (!settings || !settings.logic_ad) {
+        addDhcpLog('No logical address found in settings', 'error');
+        return;
+      }
       const logicalAddress = settings.logic_ad;
 
-      // Assign a port if not already assigned
-      let port = devicePorts.get(chaddr);
-      if (!port) {
-        port = nextPort++;
-        devicePorts.set(chaddr, port);
-      }
+      const port = 5000;
+      devicePorts.set(chaddr, port);
 
-      // Spawn uds.py immediately with IP, logical address, and port
       const pythonScriptPath = path.join(__dirname, 'uds.py');
       const pythonProcess = spawn('python', [
         pythonScriptPath,
@@ -408,32 +451,36 @@ ipcMain.handle('start-dhcp', async () => {
         '-p', port.toString()
       ]);
 
+      addDhcpLog(`Starting Diag Sequence...`);
+
       pythonProcess.stdout.on('data', (data) => {
-        console.log(`uds.py stdout (MAC: ${chaddr}): ${data}`);
+        addDhcpLog(`uds.py stdout (MAC: ${chaddr}): ${data}`);
       });
 
       pythonProcess.stderr.on('data', (data) => {
-        console.error(`uds.py stderr (MAC: ${chaddr}): ${data}`);
+        addDhcpLog(`uds.py stderr (MAC: ${chaddr}): ${data}`, 'error');
       });
 
       pythonProcess.on('close', (code) => {
-        console.log(`uds.py process for MAC ${chaddr} exited with code ${code}`);
+        addDhcpLog(`uds.py process for MAC ${chaddr} exited with code ${code}`, code === 0 ? 'info' : 'error');
         if (code !== 0) {
-          devicePorts.delete(chaddr); // Free the port if the process failed
+          devicePorts.delete(chaddr);
         }
       });
 
-      // Notify renderer with port information
-      BrowserWindow.getAllWindows()[0].webContents.send('device-connected', {
-        ip: ipAddress,
-        mac: chaddr,
-        port: port
-      });
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        console.log('Emitting device-connected:', { ip: ipAddress, mac: chaddr, port });
+        mainWindow.webContents.send('device-connected', {
+          ip: ipAddress,
+          mac: chaddr,
+          port: port
+        });
+      }
     });
     server.listen();
     return 'DHCP server started successfully';
   } catch (error) {
-    console.error('Error starting DHCP server:', error);
+    addDhcpLog(`Error starting DHCP server: ${error.message}`, 'error');
     throw error;
   }
 });
@@ -441,7 +488,9 @@ ipcMain.handle('start-dhcp', async () => {
 // IPC handler to stop the DHCP server
 ipcMain.handle('stop-dhcp', async () => {
   if (!server) {
-    throw new Error('DHCP server is not running');
+    const errorMsg = 'DHCP server is not running';
+    addDhcpLog(errorMsg, 'error');
+    throw new Error(errorMsg);
   }
   closeDhcpServer();
   return 'DHCP server stopped successfully';

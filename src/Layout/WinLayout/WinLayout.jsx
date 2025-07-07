@@ -138,6 +138,7 @@ const WinLayout = () => {
                         setVehicleInfo={setVehicleInfo}
                         reports={reports}
                         selectedReportId={selectedReportId}
+                        isRunning={isRunning}
                       />
                     </div>
                     <div className="right-top-right-section">

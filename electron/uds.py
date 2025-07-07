@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 import argparse
 import logging
 import time
+from datetime import datetime, timezone
 from flask import Flask, jsonify
 from flask_cors import CORS
 from doipclient import DoIPClient
@@ -16,6 +16,24 @@ from udsoncan import AsciiCodec
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("doipclient")
 
+# Store UDS logs in memory
+uds_logs = []
+
+# Helper function to add UDS log
+def add_uds_log(message, level='info'):
+    # Use timezone-aware timestamp
+    log = {
+        'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        'message': message,
+        'level': level  # 'info', 'error', 'warning'
+    }
+    uds_logs.append(log)
+    # Limit log size to prevent memory issues
+    if len(uds_logs) > 1000:
+        uds_logs.pop(0)
+    logger.log(getattr(logging, level.upper()), message)
+    return log
+
 # Parse command-line arguments
 def parse_args():
     parser = argparse.ArgumentParser(description='UDS over DoIP Flask API')
@@ -29,9 +47,7 @@ ip_address = args.ip
 logical_address = int(args.la, 16)
 flask_port = args.port
 
-print(f"Car PCU IP: {ip_address}")
-print(f"Target Logical Address: {hex(logical_address)}")
-print(f"Flask Server Port: {flask_port}")
+add_uds_log(f"Starting UDS server for Car PCU IP: {ip_address}, Logical Address: {hex(logical_address)}, Port: {flask_port}")
 
 # Initialize DoIP client with retries
 max_retries = 5
@@ -47,14 +63,15 @@ for attempt in range(max_retries):
             protocol_version=2,
             client_logical_address=0x0E00
         )
-        print("Connected to UDS Server!!")
+        add_uds_log("Connected to UDS Server")
         break
     except Exception as e:
+        add_uds_log(f"Connection attempt {attempt + 1} failed: {str(e)}", 'error')
         if attempt < max_retries - 1:
-            print(f"Connection attempt {attempt + 1} failed: {e}. Retrying in {retry_delay} seconds...")
+            add_uds_log(f"Retrying in {retry_delay} seconds...", 'info')
             time.sleep(retry_delay)
         else:
-            print(f"Failed to connect after {max_retries} attempts: {e}")
+            add_uds_log(f"Failed to connect after {max_retries} attempts: {str(e)}", 'error')
             exit(1)
 
 conn = DoIPClientUDSConnector(doip_client)
@@ -75,7 +92,12 @@ def create_client(connector):
         }
     })
     client = Client(connector, config=config)
-    client.open()
+    try:
+        client.open()
+        add_uds_log("UDS client opened successfully")
+    except Exception as e:
+        add_uds_log(f"Failed to open UDS client: {str(e)}", 'error')
+        raise
     return client
 
 client = create_client(conn)
@@ -84,13 +106,18 @@ client = create_client(conn)
 app = Flask(__name__)
 CORS(app)
 
+# New endpoint to get UDS logs
+@app.route('/uds_logs', methods=['GET'])
+def get_uds_logs():
+    return jsonify(uds_logs)
+
 @app.route('/vehicle_info', methods=['GET'])
 def get_vehicle_info():
     dids = {
         'vehicleIdentificationNumber': 0xF190,
         'ecuSerialNumberDataIdentifier': 0xF18C,
         'systemSupplierIdentifier': 0xF18A,
-        'vehicle люблюEcuHardwareNumber': 0xF191,
+        'vehicleManufacturerEcuHardwareNumber': 0xF191,
         'manufacturerSparePartNumber': 0xF187,
     }
     result = {}
@@ -98,17 +125,22 @@ def get_vehicle_info():
     for key, did in dids.items():
         try:
             req = Request(service=ReadDataByIdentifier, data=bytes([did >> 8, did & 0xFF]))
+            add_uds_log(f"Sending UDS request for DID {hex(did)}")
             resp = client.send_request(req)
             if resp.positive:
                 payload = resp.data[2:]
                 text = payload.decode('ascii', errors='ignore').rstrip('\x00')
                 result[key] = text
+                add_uds_log(f"Received positive response for DID {hex(did)}: {text}")
             else:
                 result[key] = f"Error: {resp.code_name}"
+                add_uds_log(f"Negative response for DID {hex(did)}: {resp.code_name}", 'error')
         except (NegativeResponseException, InvalidResponseException, UnexpectedResponseException) as e:
-            result[key] = f"UDS Error: {e}"
+            result[key] = f"UDS Error: {str(e)}"
+            add_uds_log(f"UDS error for DID {hex(did)}: {str(e)}", 'error')
         except Exception as e:
-            result[key] = f"Exception: {e}"
+            result[key] = f"Exception: {str(e)}"
+            add_uds_log(f"General exception for DID {hex(did)}: {str(e)}", 'error')
 
     return jsonify(result)
 
