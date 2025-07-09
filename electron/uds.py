@@ -39,7 +39,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='UDS over DoIP Flask API')
     parser.add_argument('-i', '--ip', type=str, required=True, help='Target IP address of the car PCU')
     parser.add_argument('-l', '--la', type=str, required=True, help='Target ECU logical address (hex format, e.g. 0x545)')
-    parser.add_argument('-p', '--port', type=int, default=5000, help='Port to run Flask server on')
+    parser.add_argument('-p', '--port', type=int, default=6800, help='Port to run Flask server on')
     return parser.parse_args()
 
 args = parse_args()

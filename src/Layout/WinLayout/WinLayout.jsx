@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './WinLayout.css';
-import doc from '../../assets/doc.png';
 import { VscClose } from 'react-icons/vsc';
 import NavigationSection from '../NavigationSection/NavigationSection';
 import CarProfile from '../../Components/CarProfile/CarProfile';
@@ -53,6 +52,22 @@ const WinLayout = () => {
       setIsLoggedIn(false);
     }
   };
+
+  const handleSettings = () => {
+    setIsSettingsOpen(prev => !prev);
+  };
+
+  useEffect(() => {
+    const handleKeydown = (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        handleSettings();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
 
   useEffect(() => {
     // initial fetch
@@ -172,7 +187,7 @@ const WinLayout = () => {
             </>
           ) : (
             <div className="documentation-section">
-              <img src={doc} alt="Documentation" className='documentation-img' />
+              
             </div>
           )}
         </>

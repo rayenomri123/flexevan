@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { ScaleLoader } from 'react-spinners';
+
 import './Output.css';
 
 const Output = ({
@@ -10,12 +12,22 @@ const Output = ({
   selectedReportId,
   isRunning
 }) => {
+
+  const prevRunningRef = useRef(false);
+  const [port, setPort] = useState(6800);
+
+  useEffect(() => {
+    if (!prevRunningRef.current && isRunning) {
+      setPort((prev) => prev + 1);
+    }
+    prevRunningRef.current = isRunning;
+  }, [isRunning]);
   
   // 1) Fetch vehicle info every 500ms when running
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/vehicle_info');
+        const response = await fetch(`http://localhost:${port.toString()}/vehicle_info`);
         const data = await response.json();
 
         // Check for errors inside the API response
@@ -49,7 +61,7 @@ const Output = ({
 
     if (isRunning) {
       fetchData(); // Initial fetch
-      const intervalId = setInterval(fetchData, 500);
+      const intervalId = setInterval(fetchData, 1000);
       return () => clearInterval(intervalId);
     }
   }, [isRunning, setVehicleInfo]);
@@ -114,19 +126,35 @@ const Output = ({
       ) : (
         <>
           <div className="info-title">Vehicle Information</div>
-          <div className="info-grid">
-            {Object.entries(vehicleInfo).map(([key, value], index) => (
-              <InfoItem
-                key={index}
-                label={key
-                  .replace(/([A-Z])/g, ' $1')
-                  .trim()
-                  .replace(/^./, (str) => str.toUpperCase())}
-                value={value}
-                index={index}
+          {isRunning && !isRecorded ? (
+            <div className='spinne-container'>
+              <ScaleLoader
+                color="#3498db"
+                height={30}
+                width={3}
+                radius={2}
+                margin={2}
+                cssOverride={{
+                  opacity: 0.4,
+                  transform: 'scale(0.8)'  // optional: further scale down everything
+                }}
               />
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="info-grid">
+              {Object.entries(vehicleInfo).map(([key, value], index) => (
+                <InfoItem
+                  key={index}
+                  label={key
+                    .replace(/([A-Z])/g, ' $1')
+                    .trim()
+                    .replace(/^./, (str) => str.toUpperCase())}
+                  value={value}
+                  index={index}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

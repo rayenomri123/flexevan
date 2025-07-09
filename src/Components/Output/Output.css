@@ -11,7 +11,7 @@
 
 .info-title {
     font-size: 1.1rem;
-    color: var(--text-primary);
+    color: #3498db;
     margin: 0 auto;
 }
 
@@ -26,12 +26,12 @@
   border-left: 2px solid #3498db;
   transition: transform 0.2s ease;
   padding-left: 18px;
-  background-color: var(--border-color);
+  /* background-color: var(--border-color); */
 }
 
-/* .even-item {
+.even-item {
   background-color: var(--border-color);
-} */
+}
 
 .info-label {
   color: var(--text-secondary);
@@ -47,4 +47,12 @@
   color: var(--text-primary);
   font-size: 0.8rem;
   min-height: 17px;
+}
+
+.spinne-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

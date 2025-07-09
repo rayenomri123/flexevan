@@ -2,11 +2,23 @@ import './Controls.css'
 import { VscRunAll, VscDebugStop, VscBookmark } from 'react-icons/vsc'
 import { generateVehicleReportPdf } from '../../utils/pdfUtils';
 import { FaSpinner } from 'react-icons/fa'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TbFileExport  } from 'react-icons/tb';
 
 const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave, setIsToSave, reports, selectedReportId }) => {
   const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    const handleKeydown = (e) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault(); // Prevent default reload in Electron
+        handleDhcpAction();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [isRunning]);
 
   const handleDhcpAction = async () => {
     // start spinner

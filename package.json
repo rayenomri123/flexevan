@@ -6,21 +6,24 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "electron": "electron .",
     "start": "concurrently \"npm run dev\" \"npm run electron\"",
-    "postinstall": "electron-rebuild"
+    "postinstall": "electron-rebuild",
+    "build": "vite build && electron-builder --win",
+    "dist": "npm run build"
   },
   "dependencies": {
     "@blackglory/better-sqlite3-migrations": "^0.1.19",
     "better-sqlite3": "^11.10.0",
     "dhcp": "^0.2.20",
+    "electron-log": "^5.4.1",
     "jspdf": "^3.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "react-spinners": "^0.17.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
@@ -29,11 +32,51 @@
     "@vitejs/plugin-react": "^4.5.2",
     "concurrently": "^9.2.0",
     "electron": "^37.1.0",
+    "electron-builder": "^26.0.12",
     "electron-rebuild": "^3.2.9",
     "eslint": "^9.29.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
     "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.amperesoftwaretechnology.flexevan",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/uds.exe",
+        "to": "uds.exe"
+      }
+    ],
+    "asarUnpack": [
+      "uds.exe"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FlexEvan"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "rayenomri123",
+        "repo": "flexevan"
+      }
+    ]
   }
 }

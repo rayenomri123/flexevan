@@ -1,28 +1,40 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron');
 const path = require('path');
 const os = require('os');
 const { execSync, spawn } = require('child_process');
 const { initDatabase, getDb } = require('./database');
 const dhcp = require('dhcp');
+const log = require('electron-log');
+
+const isDev = !app.isPackaged;
+
+log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs/main.log');
+log.transports.file.level = 'silly';
+process.on('uncaughtException', (err) => {
+  log.error('UNCAUGHT EXCEPTION:', err);
+  dialog.showErrorBox('Fatal Error', err.stack || err.message);
+});
 
 const dhcpLogs = [];
-let mainWindow = null; // Store main window reference
-let server; // Store the DHCP server instance
-let nextPort = 5000;
-const devicePorts = new Map(); // Maps MAC address to Flask port
+let mainWindow = null;
+let server = null;
+const devicePorts = new Map(); // Maps MAC to Flask port
+const pythonProcesses = new Map(); // Maps MAC to Flask process
+let nextPort = 6800; // Starting port for Flask servers
+const processedMacs = new Set(); // Tracks recently processed MACs for debouncing
 
 function addDhcpLog(message, level = 'info') {
-  const log = {
+  const logEntry = {
     timestamp: new Date().toISOString(),
     message,
     level,
   };
-  dhcpLogs.push(log);
+  dhcpLogs.push(logEntry);
   if (dhcpLogs.length > 1000) {
     dhcpLogs.shift();
   }
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('dhcp-log', log);
+    mainWindow.webContents.send('dhcp-log', logEntry);
   }
 }
 
@@ -39,10 +51,9 @@ function createWindow() {
 
   mainWindow.maximize();
 
-  const isDev = process.env.NODE_ENV !== 'production';
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
@@ -52,20 +63,6 @@ function createWindow() {
   });
 }
 
-// Request elevation on Windows
-if (process.platform === 'win32' && !process.env.HOME) {
-  const { spawn } = require('child_process');
-  spawn('powershell.exe', [
-    'Start-Process',
-    process.execPath,
-    '-Verb',
-    'RunAs'
-  ], { detached: true });
-  app.quit();
-  return;
-}
-
-// IPC handler to get network interfaces
 ipcMain.handle('get-network-interfaces', async () => {
   const interfaces = os.networkInterfaces();
   const ethernetInterfacesMap = new Map();
@@ -88,12 +85,10 @@ ipcMain.handle('get-network-interfaces', async () => {
     : [{ name: 'Interface', address: 'not found' }];
 });
 
-// IPC handler to get DHCP logs
 ipcMain.handle('get-dhcp-logs', async () => {
   return dhcpLogs;
 });
 
-// IPC handler to get settings
 ipcMain.handle('get-settings', async () => {
   try {
     const db = getDb();
@@ -105,7 +100,6 @@ ipcMain.handle('get-settings', async () => {
   }
 });
 
-// IPC handler to save settings
 ipcMain.handle('save-settings', async (event, settings) => {
   try {
     const db = getDb();
@@ -133,7 +127,6 @@ ipcMain.handle('save-settings', async (event, settings) => {
   }
 });
 
-// IPC handler to fetch all reports
 ipcMain.handle('fetch-reports', async () => {
   try {
     const db = getDb();
@@ -151,7 +144,6 @@ ipcMain.handle('fetch-reports', async () => {
   }
 });
 
-// IPC handler to add a new report
 ipcMain.handle('add-report', async (event, report) => {
   try {
     const db = getDb();
@@ -177,7 +169,6 @@ ipcMain.handle('add-report', async (event, report) => {
   }
 });
 
-// IPC handler for FTS search by title
 ipcMain.handle('search-reports', async (event, query) => {
   try {
     const db = getDb();
@@ -208,7 +199,7 @@ ipcMain.handle('search-reports', async (event, query) => {
       FROM reports_fts fts
       JOIN reports r ON fts.rowid = r.id
       WHERE fts.title MATCH ?
-      ORDER BY rank;
+      ORDER BY rank
     `);
     const reports = stmt.all(ftsQuery);
     return reports;
@@ -218,7 +209,6 @@ ipcMain.handle('search-reports', async (event, query) => {
   }
 });
 
-// IPC handler to fetch all users
 ipcMain.handle('fetch-users', async () => {
   try {
     const db = getDb();
@@ -230,7 +220,6 @@ ipcMain.handle('fetch-users', async () => {
   }
 });
 
-// IPC handler to update loggedin status
 ipcMain.handle('update-user-loggedin', async (event, { id, loggedin }) => {
   try {
     const db = getDb();
@@ -243,7 +232,6 @@ ipcMain.handle('update-user-loggedin', async (event, { id, loggedin }) => {
   }
 });
 
-// Helper function to validate IP against subnet
 function isIpInSubnet(ip, subnetIp, subnetMask) {
   const ipParts = ip.split('.').map(Number);
   const subnetParts = subnetIp.split('.').map(Number);
@@ -257,7 +245,6 @@ function isIpInSubnet(ip, subnetIp, subnetMask) {
   return true;
 }
 
-// Helper function to calculate CIDR prefix from subnet mask
 function maskToCidr(subnetMask) {
   const maskParts = subnetMask.split('.').map(Number);
   let cidr = 0;
@@ -273,33 +260,37 @@ function maskToCidr(subnetMask) {
   return cidr;
 }
 
-// Helper function to calculate broadcast address
 function calculateBroadcast(ip, subnetMask) {
   const ipParts = ip.split('.').map(Number);
   const maskParts = subnetMask.split('.').map(Number);
-  const broadcast = ipParts.map((part, i) => part | (~maskParts[i] & 255));
+  const broadcast = ipParts.map((part, i) => (part | (~maskParts[i] & 255)));
   return broadcast.join('.');
 }
 
-// Helper function to validate IP address
 function isValidIp(ip) {
   const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   return ipRegex.test(ip);
 }
 
-// Helper function to validate MAC address
 function isValidMac(mac) {
   const macRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
   return macRegex.test(mac);
 }
 
-// Function to close DHCP server if running
 function closeDhcpServer() {
   if (server) {
     try {
       server.close();
       server = null;
+      pythonProcesses.forEach((proc, mac) => {
+        proc.kill();
+        proc.on('exit', () => {
+          addDhcpLog(`UDS process for MAC ${mac} terminated`);
+        });
+      });
+      pythonProcesses.clear();
       devicePorts.clear();
+      processedMacs.clear(); // Clear processed MACs
       const db = getDb();
       const settings = db.prepare('SELECT * FROM settings ORDER BY id DESC LIMIT 1').get();
       if (settings) {
@@ -319,7 +310,6 @@ function closeDhcpServer() {
   }
 }
 
-// IPC handler to start the DHCP server
 ipcMain.handle('start-dhcp', async () => {
   if (server) {
     const errorMsg = 'DHCP server is already running';
@@ -362,7 +352,7 @@ ipcMain.handle('start-dhcp', async () => {
     }
     const interfaceIp = interfaceDetails.find(details => details.family === 'IPv4' && !details.internal)?.address;
     if (!interfaceIp) {
-      const errorMsg = `No valid IPv4 address found for ${settings.interface_name}`;
+    const errorMsg = `No valid IPv4 address found for ${settings.interface_name}`;
       addDhcpLog(errorMsg, 'error');
       throw new Error(errorMsg);
     }
@@ -430,6 +420,18 @@ ipcMain.handle('start-dhcp', async () => {
       const ipAddress = deviceData.address;
       const chaddr = macAddress;
 
+      // Debounce: Ignore if MAC was recently processed
+      if (processedMacs.has(chaddr)) {
+        addDhcpLog(`Ignoring duplicate bound event for MAC: ${chaddr}`);
+        return;
+      }
+
+      // Add MAC to processed set and remove after 500ms
+      processedMacs.add(chaddr);
+      setTimeout(() => {
+        processedMacs.delete(chaddr);
+      }, 500);
+
       addDhcpLog(`New device assigned IP: ${ipAddress} (MAC: ${chaddr})`);
 
       const db = getDb();
@@ -440,18 +442,66 @@ ipcMain.handle('start-dhcp', async () => {
       }
       const logicalAddress = settings.logic_ad;
 
-      const port = 5000;
-      devicePorts.set(chaddr, port);
+      // Check if a process already exists for this MAC
+      if (pythonProcesses.has(chaddr)) {
+        addDhcpLog(`UDS process already running for MAC: ${chaddr}`);
+        // Send existing connection details to the UI
+        const port = devicePorts.get(chaddr);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('device-connected', {
+            ip: ipAddress,
+            mac: chaddr,
+            port: port
+          });
+        }
+        return;
+      }
 
-      const pythonScriptPath = path.join(__dirname, 'uds.py');
-      const pythonProcess = spawn('python', [
-        pythonScriptPath,
-        '-i', ipAddress,
-        '-l', logicalAddress,
-        '-p', port.toString()
-      ]);
+      // Assign or reuse port
+      let port;
+      if (devicePorts.has(chaddr)) {
+        port = devicePorts.get(chaddr);
+      } else {
+        port = nextPort++;
+        devicePorts.set(chaddr, port);
+      }
 
-      addDhcpLog(`Starting Diag Sequence...`);
+      let udsExePath;
+      let spawnArgs = [];
+      let spawnExecutable;
+
+      if (isDev) {
+        spawnExecutable = process.platform === 'win32' ? 'python' : 'python3';
+        udsExePath = path.resolve(__dirname, 'uds.py');
+        spawnArgs = [
+          udsExePath,
+          '-i', ipAddress,
+          '-l', logicalAddress,
+          '-p', port.toString()
+        ];
+      } else {
+        spawnExecutable = path.join(process.resourcesPath, 'uds.exe');
+        udsExePath = spawnExecutable;
+        spawnArgs = [
+          '-i', ipAddress,
+          '-l', logicalAddress,
+          '-p', port.toString()
+        ];
+      }
+
+      addDhcpLog(`Spawning UDS executable: ${spawnExecutable} with args: ${spawnArgs.join(' ')}`);
+
+      const fs = require('fs');
+      if (!fs.existsSync(udsExePath)) {
+        const errorMsg = `UDS executable not found at: ${udsExePath}`;
+        addDhcpLog(errorMsg, 'error');
+        throw new Error(errorMsg);
+      }
+
+      const pythonProcess = spawn(spawnExecutable, spawnArgs);
+      pythonProcesses.set(chaddr, pythonProcess);
+
+      addDhcpLog(`Starting Diag Sequence for MAC: ${chaddr} on port: ${port}`);
 
       pythonProcess.stdout.on('data', (data) => {
         addDhcpLog(`uds.py stdout (MAC: ${chaddr}): ${data}`);
@@ -463,13 +513,11 @@ ipcMain.handle('start-dhcp', async () => {
 
       pythonProcess.on('close', (code) => {
         addDhcpLog(`uds.py process for MAC ${chaddr} exited with code ${code}`, code === 0 ? 'info' : 'error');
-        if (code !== 0) {
-          devicePorts.delete(chaddr);
-        }
+        pythonProcesses.delete(chaddr);
+        devicePorts.delete(chaddr);
       });
 
       if (mainWindow && !mainWindow.isDestroyed()) {
-        console.log('Emitting device-connected:', { ip: ipAddress, mac: chaddr, port });
         mainWindow.webContents.send('device-connected', {
           ip: ipAddress,
           mac: chaddr,
@@ -478,14 +526,13 @@ ipcMain.handle('start-dhcp', async () => {
       }
     });
     server.listen();
-    return 'DHCP server started successfully';
+    return 'DHCP лимитserver started successfully';
   } catch (error) {
     addDhcpLog(`Error starting DHCP server: ${error.message}`, 'error');
     throw error;
   }
 });
 
-// IPC handler to stop the DHCP server
 ipcMain.handle('stop-dhcp', async () => {
   if (!server) {
     const errorMsg = 'DHCP server is not running';
@@ -496,7 +543,6 @@ ipcMain.handle('stop-dhcp', async () => {
   return 'DHCP server stopped successfully';
 });
 
-// IPC handler to quit the app
 ipcMain.handle('quit-app', async () => {
   closeDhcpServer();
   app.quit();
