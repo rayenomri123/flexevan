@@ -56,6 +56,7 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    mainWindow.webContents.openDevTools();
   }
 
   mainWindow.on('closed', () => {
@@ -480,7 +481,16 @@ ipcMain.handle('start-dhcp', async () => {
           '-p', port.toString()
         ];
       } else {
-        spawnExecutable = path.join(process.resourcesPath, 'uds.exe');
+        // Production mode: Select executable based on platform
+        if (process.platform === 'win32') {
+          spawnExecutable = path.join(process.resourcesPath, 'uds.exe');
+        } else if (process.platform === 'linux') {
+          spawnExecutable = path.join(process.resourcesPath, 'uds');
+        } else {
+          const errorMsg = `Unsupported platform: ${process.platform}`;
+          addDhcpLog(errorMsg, 'error');
+          throw new Error(errorMsg);
+        }
         udsExePath = spawnExecutable;
         spawnArgs = [
           '-i', ipAddress,
@@ -526,7 +536,7 @@ ipcMain.handle('start-dhcp', async () => {
       }
     });
     server.listen();
-    return 'DHCP лимитserver started successfully';
+    return 'DHCP server started successfully';
   } catch (error) {
     addDhcpLog(`Error starting DHCP server: ${error.message}`, 'error');
     throw error;
