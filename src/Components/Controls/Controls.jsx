@@ -10,7 +10,7 @@ const Controls = ({ isRunning, setIsRunning, isRecorded,  vehicleInfo, isToSave,
   
   useEffect(() => {
     const handleKeydown = (e) => {
-      if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+      if (e.ctrlKey && e.key.toLowerCase() === 'a') {
         e.preventDefault(); // Prevent default reload in Electron
         handleDhcpAction();
       }

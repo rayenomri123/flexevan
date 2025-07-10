@@ -1,15 +1,22 @@
 import argparse
 import logging
 import time
+import socket
 from datetime import datetime, timezone
 from flask import Flask, jsonify
 from flask_cors import CORS
+from werkzeug.serving import make_server
+
 from doipclient import DoIPClient
 from doipclient.connectors import DoIPClientUDSConnector
 from udsoncan.client import Client
 from udsoncan import configs, Request
 from udsoncan.services import ReadDataByIdentifier
-from udsoncan.exceptions import NegativeResponseException, InvalidResponseException, UnexpectedResponseException
+from udsoncan.exceptions import (
+    NegativeResponseException,
+    InvalidResponseException,
+    UnexpectedResponseException
+)
 from udsoncan import AsciiCodec
 
 # Initialize logger
@@ -21,14 +28,12 @@ uds_logs = []
 
 # Helper function to add UDS log
 def add_uds_log(message, level='info'):
-    # Use timezone-aware timestamp
     log = {
         'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
         'message': message,
-        'level': level  # 'info', 'error', 'warning'
+        'level': level
     }
     uds_logs.append(log)
-    # Limit log size to prevent memory issues
     if len(uds_logs) > 1000:
         uds_logs.pop(0)
     logger.log(getattr(logging, level.upper()), message)
@@ -38,7 +43,8 @@ def add_uds_log(message, level='info'):
 def parse_args():
     parser = argparse.ArgumentParser(description='UDS over DoIP Flask API')
     parser.add_argument('-i', '--ip', type=str, required=True, help='Target IP address of the car PCU')
-    parser.add_argument('-l', '--la', type=str, required=True, help='Target ECU logical address (hex format, e.g. 0x545)')
+    parser.add_argument('-l', '--la', type=str, required=True,
+                        help='Target ECU logical address (hex format, e.g. 0x545)')
     parser.add_argument('-p', '--port', type=int, default=6800, help='Port to run Flask server on')
     return parser.parse_args()
 
@@ -53,6 +59,7 @@ add_uds_log(f"Starting UDS server for Car PCU IP: {ip_address}, Logical Address:
 max_retries = 5
 retry_delay = 5  # seconds
 
+doip_client = None
 for attempt in range(max_retries):
     try:
         doip_client = DoIPClient(
@@ -84,11 +91,11 @@ def create_client(connector):
         'p2_timeout': 20,
         'p2_star_timeout': 20,
         'data_identifiers': {
-            0xF190: AsciiCodec(17),  # Vehicle Identification Number (VIN)
-            0xF18C: AsciiCodec(24),  # ECU Serial Number
-            0xF18A: AsciiCodec(10),  # System Supplier Identifier
-            0xF191: AsciiCodec(10),  # Vehicle Manufacturer ECU Hardware Number
-            0xF187: AsciiCodec(10),  # Manufacturer Spare Part Number
+            0xF190: AsciiCodec(17),  # VIN
+            0xF18C: AsciiCodec(24),  # ECU SN
+            0xF18A: AsciiCodec(10),  # Supplier ID
+            0xF191: AsciiCodec(10),  # ECU HW number
+            0xF187: AsciiCodec(10),  # Spare part number
         }
     })
     client = Client(connector, config=config)
@@ -106,11 +113,12 @@ client = create_client(conn)
 app = Flask(__name__)
 CORS(app)
 
-# New endpoint to get UDS logs
+# Endpoint to get UDS logs
 @app.route('/uds_logs', methods=['GET'])
 def get_uds_logs():
     return jsonify(uds_logs)
 
+# Endpoint to read vehicle info via UDS
 @app.route('/vehicle_info', methods=['GET'])
 def get_vehicle_info():
     dids = {
@@ -144,5 +152,14 @@ def get_vehicle_info():
 
     return jsonify(result)
 
+# Run the Flask app with socket reuse
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=flask_port)
+    server = make_server('0.0.0.0', flask_port, app)
+    listen_sock = server.socket
+    listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    try:
+        listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except (AttributeError, OSError):
+        pass
+    add_uds_log(f"Flask listening on port {flask_port} with SO_REUSEADDR set")
+    server.serve_forever()
