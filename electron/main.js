@@ -162,7 +162,7 @@ ipcMain.handle('add-report', async (event, report) => {
       report.vehicle_manufacturer_ecu_hardware_number,
       report.manufacturer_spare_part_number
     );
-    return { id: result.lastInsertRowid, ...report, created_at: new Date().toISOString() };
+    return { id: result.lastInsertRowid, ...react, created_at: new Date().toISOString() };
   } catch (error) {
     addDhcpLog(`Error adding report: ${error.message}`, 'error');
     throw error;
@@ -277,20 +277,52 @@ function isValidMac(mac) {
   return macRegex.test(mac);
 }
 
-function closeDhcpServer() {
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const net = require('net');
+    const tester = net.createServer();
+    tester.once('error', () => resolve(false));
+    tester.once('listening', () => {
+      tester.close();
+      resolve(true);
+    });
+    tester.listen(port, '0.0.0.0');
+  });
+}
+
+async function terminatePythonProcess(mac, proc) {
+  return new Promise((resolve) => {
+    if (!proc || proc.killed) {
+      resolve();
+      return;
+    }
+    proc.kill('SIGTERM');
+    proc.on('exit', () => {
+      addDhcpLog(`UDS process for MAC ${mac} terminated`);
+      resolve();
+    });
+    setTimeout(() => {
+      if (!proc.killed) {
+        proc.kill('SIGKILL');
+        addDhcpLog(`Forcefully killed UDS process for MAC ${mac}`);
+      }
+      resolve();
+    }, 2000); // Force kill after 2 seconds if not terminated
+  });
+}
+
+async function closeDhcpServer() {
   if (server) {
     try {
       server.close();
       server = null;
-      pythonProcesses.forEach((proc, mac) => {
-        proc.kill();
-        proc.on('exit', () => {
-          addDhcpLog(`UDS process for MAC ${mac} terminated`);
-        });
-      });
+      const termPromises = Array.from(pythonProcesses.entries()).map(([mac, proc]) =>
+        terminatePythonProcess(mac, proc)
+      );
+      await Promise.all(termPromises);
       pythonProcesses.clear();
       devicePorts.clear();
-      processedMacs.clear(); // Clear processed MACs
+      processedMacs.clear();
       const db = getDb();
       const settings = db.prepare('SELECT * FROM settings ORDER BY id DESC LIMIT 1').get();
       if (settings) {
@@ -352,7 +384,7 @@ ipcMain.handle('start-dhcp', async () => {
     }
     const interfaceIp = interfaceDetails.find(details => details.family === 'IPv4' && !details.internal)?.address;
     if (!interfaceIp) {
-    const errorMsg = `No valid IPv4 address found for ${settings.interface_name}`;
+      const errorMsg = `No valid IPv4 address found for ${settings.interface_name}`;
       addDhcpLog(errorMsg, 'error');
       throw new Error(errorMsg);
     }
@@ -410,7 +442,7 @@ ipcMain.handle('start-dhcp', async () => {
         });
       }
     });
-    server.on('bound', (state) => {
+    server.on('bound', async (state) => {
       const macAddress = Object.keys(state)[0];
       const deviceData = state[macAddress];
       if (!deviceData || !deviceData.address) {
@@ -445,7 +477,6 @@ ipcMain.handle('start-dhcp', async () => {
       // Check if a process already exists for this MAC
       if (pythonProcesses.has(chaddr)) {
         addDhcpLog(`UDS process already running for MAC: ${chaddr}`);
-        // Send existing connection details to the UI
         const port = devicePorts.get(chaddr);
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('device-connected', {
@@ -458,10 +489,14 @@ ipcMain.handle('start-dhcp', async () => {
       }
 
       // Assign or reuse port
-      let port;
-      if (devicePorts.has(chaddr)) {
-        port = devicePorts.get(chaddr);
-      } else {
+      let port = devicePorts.get(chaddr);
+      if (!port) {
+        while (!(await isPortAvailable(nextPort))) {
+          nextPort++;
+          if (nextPort > 6900) {
+            nextPort = 6800; // Reset to avoid excessive port numbers
+          }
+        }
         port = nextPort++;
         devicePorts.set(chaddr, port);
       }
@@ -526,7 +561,7 @@ ipcMain.handle('start-dhcp', async () => {
       }
     });
     server.listen();
-    return 'DHCP лимитserver started successfully';
+    return 'DHCP server started successfully';
   } catch (error) {
     addDhcpLog(`Error starting DHCP server: ${error.message}`, 'error');
     throw error;
@@ -539,12 +574,12 @@ ipcMain.handle('stop-dhcp', async () => {
     addDhcpLog(errorMsg, 'error');
     throw new Error(errorMsg);
   }
-  closeDhcpServer();
+  await closeDhcpServer();
   return 'DHCP server stopped successfully';
 });
 
 ipcMain.handle('quit-app', async () => {
-  closeDhcpServer();
+  await closeDhcpServer();
   app.quit();
 });
 
@@ -558,7 +593,7 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('window-all-closed', () => {
-  closeDhcpServer();
+app.on('window-all-closed', async () => {
+  await closeDhcpServer();
   if (process.platform !== 'darwin') app.quit();
 });

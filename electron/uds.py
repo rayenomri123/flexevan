@@ -2,11 +2,12 @@ import argparse
 import logging
 import time
 import socket
+import signal
+import sys
 from datetime import datetime, timezone
 from flask import Flask, jsonify
 from flask_cors import CORS
 from werkzeug.serving import make_server
-
 from doipclient import DoIPClient
 from doipclient.connectors import DoIPClientUDSConnector
 from udsoncan.client import Client
@@ -55,6 +56,19 @@ flask_port = args.port
 
 add_uds_log(f"Starting UDS server for Car PCU IP: {ip_address}, Logical Address: {hex(logical_address)}, Port: {flask_port}")
 
+# Check if port is available
+def is_port_available(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('0.0.0.0', port))
+            return True
+        except socket.error:
+            return False
+
+if not is_port_available(flask_port):
+    add_uds_log(f"Port {flask_port} is in use, exiting...", 'error')
+    sys.exit(1)
+
 # Initialize DoIP client with retries
 max_retries = 5
 retry_delay = 5  # seconds
@@ -79,7 +93,7 @@ for attempt in range(max_retries):
             time.sleep(retry_delay)
         else:
             add_uds_log(f"Failed to connect after {max_retries} attempts: {str(e)}", 'error')
-            exit(1)
+            sys.exit(1)
 
 conn = DoIPClientUDSConnector(doip_client)
 
@@ -152,6 +166,36 @@ def get_vehicle_info():
 
     return jsonify(result)
 
+# Graceful shutdown
+server = None
+
+def shutdown_server():
+    global server, client, doip_client  # pylint: disable=global-statement
+    if server:
+        add_uds_log("Shutting down Flask server")
+        server.shutdown()
+        server.server_close()
+    if client:
+        try:
+            client.close()
+            add_uds_log("UDS client closed")
+        except Exception as e:
+            add_uds_log(f"Error closing UDS client: {str(e)}", 'error')
+    if doip_client:
+        try:
+            doip_client.close()
+            add_uds_log("DoIP client closed")
+        except Exception as e:
+            add_uds_log(f"Error closing DoIP client: {str(e)}", 'error')
+    sys.exit(0)
+
+def signal_handler(sig, frame):
+    add_uds_log(f"Received signal {sig}, initiating shutdown")
+    shutdown_server()
+
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
 # Run the Flask app with socket reuse
 if __name__ == '__main__':
     server = make_server('0.0.0.0', flask_port, app)
@@ -160,6 +204,9 @@ if __name__ == '__main__':
     try:
         listen_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     except (AttributeError, OSError):
-        pass
+        add_uds_log("SO_REUSEPORT not supported, continuing with SO_REUSEADDR only", 'warning')
     add_uds_log(f"Flask listening on port {flask_port} with SO_REUSEADDR set")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        shutdown_server()

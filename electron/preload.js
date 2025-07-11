@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateUserLoggedIn: (userData) => ipcRenderer.invoke('update-user-loggedin', userData),
   getDhcpLogs: () => ipcRenderer.invoke('get-dhcp-logs'),
   onDhcpLog: (callback) => ipcRenderer.on('dhcp-log', (event, log) => callback(log)),
+  onDeviceConnected: (callback) => ipcRenderer.on('device-connected', (event, data) => callback(data)),
   on: (channel, callback) => ipcRenderer.on(channel, (event, ...args) => callback(...args)),
 });

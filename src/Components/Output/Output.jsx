@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { ScaleLoader } from 'react-spinners';
-
 import './Output.css';
 
 const Output = ({
@@ -12,22 +11,26 @@ const Output = ({
   selectedReportId,
   isRunning
 }) => {
+  const [port, setPort] = useState(null);
+  const fetchTimeoutRef = useRef(null);
 
-  const prevRunningRef = useRef(false);
-  const [port, setPort] = useState(6800);
-
+  // Listen for device-connected event to get the correct port
   useEffect(() => {
-    if (!prevRunningRef.current && isRunning) {
-      setPort((prev) => prev + 1);
-    }
-    prevRunningRef.current = isRunning;
-  }, [isRunning]);
-  
-  // 1) Fetch vehicle info every 500ms when running
+    const handleDeviceConnected = (data) => {
+      setPort(data.port);
+    };
+    window.electronAPI.onDeviceConnected(handleDeviceConnected);
+    return () => {
+      // Cleanup not strictly necessary since React handles event listener removal
+    };
+  }, []);
+
+  // Fetch vehicle info every 1000ms when running and port is set
   useEffect(() => {
     const fetchData = async () => {
+      if (!port) return;
       try {
-        const response = await fetch(`http://localhost:${port.toString()}/vehicle_info`);
+        const response = await fetch(`http://localhost:${port}/vehicle_info`);
         const data = await response.json();
 
         // Check for errors inside the API response
@@ -46,7 +49,6 @@ const Output = ({
         } else {
           setVehicleInfo(data);
         }
-
       } catch (error) {
         console.error('Error fetching vehicle info:', error);
         setVehicleInfo({
@@ -59,16 +61,22 @@ const Output = ({
       }
     };
 
-    if (isRunning) {
+    if (isRunning && port) {
       fetchData(); // Initial fetch
-      const intervalId = setInterval(fetchData, 1000);
-      return () => clearInterval(intervalId);
+      fetchTimeoutRef.current = setInterval(fetchData, 1000);
     }
-  }, [isRunning, setVehicleInfo]);
 
-  // 2) Clear all values when isRunning goes false
+    return () => {
+      if (fetchTimeoutRef.current) {
+        clearInterval(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = null;
+      }
+    };
+  }, [isRunning, port, setVehicleInfo]);
+
+  // Clear all values when isRunning goes false or port is unset
   useEffect(() => {
-    if (!isRunning) {
+    if (!isRunning || !port) {
       setVehicleInfo({
         vehicleIdentificationNumber: '',
         ecuSerialNumberDataIdentifier: '',
@@ -77,9 +85,9 @@ const Output = ({
         manufacturerSparePartNumber: ''
       });
     }
-  }, [isRunning, setVehicleInfo]);
+  }, [isRunning, port, setVehicleInfo]);
 
-  // 3) Determine if all values are present
+  // Determine if all values are present
   useEffect(() => {
     const allValuesPresent = Object.values(vehicleInfo).every(
       (value) => value !== null && value !== ''
@@ -126,8 +134,8 @@ const Output = ({
       ) : (
         <>
           <div className="info-title">Vehicle Information</div>
-          {isRunning && !isRecorded ? (
-            <div className='spinne-container'>
+          {isRunning && !isRecorded && port ? (
+            <div className='spinner-container'>
               <ScaleLoader
                 color="#3498db"
                 height={30}
@@ -136,7 +144,7 @@ const Output = ({
                 margin={2}
                 cssOverride={{
                   opacity: 0.4,
-                  transform: 'scale(0.8)'  // optional: further scale down everything
+                  transform: 'scale(0.8)'
                 }}
               />
             </div>
